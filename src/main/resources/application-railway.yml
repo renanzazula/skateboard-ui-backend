@@ -1,0 +1,35 @@
+server:
+  # 8080 is skateboard-podcast-be, 8081 is Expo/Metro, 8180 is Keycloak
+  # (see skateboard-podcast-be/.docker/docker-compose.yaml) — pick a free port.
+  port: 8090
+
+spring:
+  application:
+    name: ui-backend
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Same Keycloak realm skateboard-podcast-be uses — there is only one
+          # realm today, and the FE's token (aud: skateboard-podcast-be) is
+          # relayed unmodified to downstream services, which validate it
+          # themselves. See infrastructure/security/SecurityConfig for why the
+          # JWKS URI is built directly from this instead of relying on OIDC
+          # discovery.
+          issuer-uri: ${APP_SECURITY_OAUTH2_ISSUER_URI:http://localhost:8180/realms/skateboard-podcast}
+
+clients:
+  podcast:
+    base-url: ${CLIENTS_PODCAST_BASE_URL:http://localhost:8080}
+    connect-timeout-ms: ${CLIENTS_PODCAST_CONNECT_TIMEOUT_MS:3000}
+    read-timeout-ms: ${CLIENTS_PODCAST_READ_TIMEOUT_MS:5000}
+
+app:
+  cors:
+    # Comma-separated list of origins allowed to call this BFF.
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:8081}
+
+logging:
+  pattern:
+    console: "%d{HH:mm:ss.SSS} %-5level [%X{correlationId}] %logger{36} - %msg%n"
