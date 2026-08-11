@@ -128,7 +128,7 @@
                             <goal>generate</goal>
                         </goals>
                         <configuration>
-                            <inputSpec>${project.basedir}/api/podcast-openapi.yaml</inputSpec>
+                            <inputSpec>${project.basedir}/api/openapi.yaml</inputSpec>
                             <generatorName>java</generatorName>
                             <library>webclient</library>
                             <apiPackage>com.skateboard.uibackend.client.podcast.generated.api</apiPackage>

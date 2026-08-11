@@ -25,7 +25,7 @@ import java.util.UUID;
  * Passes the frontend straight through to skateboard-podcast-be — same
  * paths, same request/response DTOs, since there's no shape divergence to
  * justify a UI-specific reshaping yet. The {@code @PreAuthorize} authorities
- * are copied from api/podcast-openapi.yaml's {@code x-required-permissions}:
+ * are copied from api/openapi.yaml's {@code x-required-permissions}:
  * coarse-grained, token-claim-only checks at this API boundary (a BFF
  * responsibility), not a duplicate of skateboard-podcast-be's own domain
  * authorization, which still runs downstream against the relayed token.
