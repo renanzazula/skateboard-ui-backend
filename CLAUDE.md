@@ -16,7 +16,7 @@ Only one downstream service exists yet: `../skateboard-podcast-be` (sibling repo
 
 ## Generated OpenAPI client
 
-`api/podcast-openapi.yaml` is a **vendored copy** of `skateboard-podcast-be/api/openapi.yaml` — this repo doesn't own that contract, and there's no shared contract registry between the two repos. When the upstream spec changes, re-copy it here by hand, and check whether `PodcastController`'s `@PreAuthorize` authorities still match its `x-required-permissions`.
+`api/openapi.yaml` is a **vendored copy** of `skateboard-podcast-be/api/openapi.yaml` — this repo doesn't own that contract, and there's no shared contract registry between the two repos. When the upstream spec changes, re-copy it here by hand, and check whether `PodcastController`'s `@PreAuthorize` authorities still match its `x-required-permissions`.
 
 `pom.xml`'s `openapi-generator-maven-plugin` generates a WebClient-based client (`generatorName=java`, `library=webclient`) from that spec into `com.skateboard.uibackend.client.podcast.generated.{api,model,invoker}` at build time — `PodcastApi`, `ApiClient`, and the request/response DTOs (`PostResponse`, `FeedPageResponse`, `CreatePostRequest`, etc.). These are regenerated on every build; don't hand-edit anything under `client/podcast/generated`.
 

@@ -52,27 +52,27 @@ public class PodcastController {
         return podcastService.getBySlug(slug);
     }
 
-    @PostMapping("/api/admin/podcast")
+    @PostMapping("/api/podcast")
     @PreAuthorize("hasAuthority('FUNC_PODCAST_CREATE_POST')")
     @ResponseStatus(HttpStatus.CREATED)
     public PostResponse create(@RequestBody CreatePostRequest request) {
         return podcastService.create(request);
     }
 
-    @PutMapping("/api/admin/podcast/{id}")
+    @PutMapping("/api/podcast/{id}")
     @PreAuthorize("hasAuthority('FUNC_PODCAST_EDIT_POST')")
     public PostResponse update(@PathVariable UUID id, @RequestBody UpdatePostRequest request) {
         return podcastService.update(id, request);
     }
 
-    @DeleteMapping("/api/admin/podcast/{id}")
+    @DeleteMapping("/api/podcast/{id}")
     @PreAuthorize("hasAuthority('FUNC_PODCAST_DELETE_POST')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable UUID id) {
         podcastService.delete(id);
     }
 
-    @PostMapping("/api/admin/podcast/import")
+    @PostMapping("/api/podcast/import")
     @PreAuthorize("hasAuthority('FUNC_PODCAST_IMPORT_JSON')")
     public ImportResult importPosts(@RequestBody ImportPostsRequest request) {
         return podcastService.importPosts(request);
