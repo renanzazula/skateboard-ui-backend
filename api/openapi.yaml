@@ -8,6 +8,10 @@
 # pom.xml's openapi-generator-maven-plugin generates PodcastApi (WebClient
 # client) and its request/response DTOs from this file at build time, into
 # com.skateboard.uibackend.client.podcast.generated.*.
+#
+# This is an *inbound* codegen input only (the downstream contract we call
+# out to) — it is not what PodcastController itself exposes to the frontend.
+# For that, see api/bff-openapi.yaml.
 
 openapi: "3.0.3"
 info:

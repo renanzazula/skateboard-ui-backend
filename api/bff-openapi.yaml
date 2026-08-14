@@ -1,0 +1,835 @@
+# This is skateboard-ui-backend's OWN exposed contract — what the frontend
+# actually calls, as implemented by the hand-written controllers
+# (PodcastController, UserController). It is NOT wired into any
+# openapi-generator-maven-plugin execution in pom.xml — those read
+# api/openapi.yaml and api/user-openapi.yaml instead, which are vendored
+# copies of skateboard-podcast-be's/skateboard-user-be's own specs, used only
+# to generate this service's *outbound* WebClient clients. This file exists
+# purely so external consumers (skateboard-fe's `api/bff-openapi.yaml`, see
+# its DEVELOPMENT.md "Regenerating the API client" section) have an accurate
+# spec to vendor and generate a typed client from.
+#
+# Keep this in sync by hand whenever a controller's routes/DTOs/
+# @PreAuthorize authorities change — there is no codegen enforcing it.
+
+openapi: "3.0.3"
+info:
+  title: Skateboard UI-backend API
+  version: "1.0.0"
+
+tags:
+  - name: podcast
+    description: Podcast endpoints
+  - name: me
+    description: Self-service operations for the currently authenticated user
+
+paths:
+
+  /api/podcast:
+    get:
+      tags: [podcast]
+      operationId: getPodcastFeed
+      summary: Get published podcast posts (paginated)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_TAB_PODCAST
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 0 }
+        - name: size
+          in: query
+          schema: { type: integer, default: 10 }
+      responses:
+        '200':
+          description: Podcast feed page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedPageResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags: [podcast]
+      operationId: createPodcastPost
+      summary: Create a new podcast post (admin only)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_PODCAST_CREATE_POST
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePostRequest'
+      responses:
+        '201':
+          description: Podcast post created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – admin role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/podcast/{slug}:
+    get:
+      tags: [podcast]
+      operationId: getPodcastPostBySlug
+      summary: Get a single podcast post by slug
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_TAB_PODCAST
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Podcast post detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/podcast/{id}:
+    put:
+      tags: [podcast]
+      operationId: updatePodcastPost
+      summary: Update an existing podcast post (admin only)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_PODCAST_EDIT_POST
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePostRequest'
+      responses:
+        '200':
+          description: Podcast post updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – admin role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [podcast]
+      operationId: deletePodcastPost
+      summary: Delete a podcast post (admin only)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_PODCAST_DELETE_POST
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Podcast post deleted
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – admin role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/podcast/import:
+    post:
+      tags: [podcast]
+      operationId: importPodcastPosts
+      summary: Bulk import podcast posts from JSON (admin only)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_PODCAST_IMPORT_JSON
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImportPostsRequest'
+      responses:
+        '200':
+          description: Import result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportResult'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – admin role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/me:
+    get:
+      tags: [me]
+      operationId: getCurrentUser
+      summary: Get the current authenticated user's profile
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_USER_SELF_READ
+      responses:
+        '200':
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      tags: [me]
+      operationId: updateCurrentUser
+      summary: Update application-owned fields of the current user's profile
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_USER_SELF_UPDATE
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: Updated user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [me]
+      operationId: deleteCurrentUser
+      summary: Delete the current user's account (coordinated domain + identity lifecycle operation)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_USER_ACCOUNT_DELETE
+      responses:
+        '204':
+          description: Account deleted (idempotent — also returned if already deleted)
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/me/preferences:
+    get:
+      tags: [me]
+      operationId: getNotificationPreferences
+      summary: Get the current user's notification preferences
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_USER_SELF_READ
+      responses:
+        '200':
+          description: Notification preferences
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPreferencesResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      tags: [me]
+      operationId: updateNotificationPreferences
+      summary: Partially update the current user's notification preferences
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_USER_SELF_UPDATE
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateNotificationPreferencesRequest'
+      responses:
+        '200':
+          description: Updated notification preferences
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPreferencesResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/me/profile-picture:
+    post:
+      tags: [me]
+      operationId: uploadProfilePicture
+      summary: Upload/replace the current user's profile picture
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_USER_SELF_UPDATE
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Updated user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Invalid file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/me/username:
+    post:
+      tags: [me]
+      operationId: changeUsername
+      summary: Change the current user's username (coordinated with Keycloak)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_USER_SELF_UPDATE
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangeUsernameRequest'
+      responses:
+        '200':
+          description: Updated user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Invalid or already-taken username
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/me/change-password:
+    post:
+      tags: [me]
+      operationId: changePassword
+      summary: Change the current user's password (coordinated with Keycloak; passwords are never stored here)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_USER_PASSWORD_CHANGE
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '204':
+          description: Password changed
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/me/deactivate:
+    post:
+      tags: [me]
+      operationId: deactivateCurrentUser
+      summary: Deactivate the current user's account
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_USER_ACCOUNT_DEACTIVATE
+      responses:
+        '200':
+          description: Updated user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/me/problem-reports:
+    post:
+      tags: [me]
+      operationId: reportProblem
+      summary: Submit a problem report from the current user
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_USER_PROBLEM_REPORT_CREATE
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProblemReportRequest'
+      responses:
+        '201':
+          description: Problem report created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemReportResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+
+    SocialMediaLink:
+      type: object
+      required: [url]
+      properties:
+        platform:
+          type: string
+        url:
+          type: string
+
+    PostResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        slug:
+          type: string
+        title:
+          type: string
+        status:
+          type: string
+          enum: [draft, scheduled, published]
+        publishAt:
+          type: string
+          format: date-time
+        coverUrl:
+          type: string
+        blocks:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+          description: Ordered array of typed content blocks
+        socialMediaLinks:
+          type: array
+          items:
+            $ref: '#/components/schemas/SocialMediaLink'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+          format: uuid
+
+    FeedPageResponse:
+      type: object
+      properties:
+        posts:
+          type: array
+          items:
+            $ref: '#/components/schemas/PostResponse'
+        total:
+          type: integer
+          format: int64
+        page:
+          type: integer
+        size:
+          type: integer
+
+    CreatePostRequest:
+      type: object
+      required: [title, coverUrl]
+      properties:
+        title:
+          type: string
+        coverUrl:
+          type: string
+        status:
+          type: string
+          enum: [draft, scheduled, published]
+          default: published
+        publishAt:
+          type: string
+          format: date-time
+        blocks:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        socialMediaLinks:
+          type: array
+          items:
+            $ref: '#/components/schemas/SocialMediaLink'
+
+    UpdatePostRequest:
+      type: object
+      required: [title, coverUrl]
+      properties:
+        title:
+          type: string
+        coverUrl:
+          type: string
+        status:
+          type: string
+          enum: [draft, scheduled, published]
+        publishAt:
+          type: string
+          format: date-time
+        blocks:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        socialMediaLinks:
+          type: array
+          items:
+            $ref: '#/components/schemas/SocialMediaLink'
+
+    ImportPostsRequest:
+      type: object
+      required: [posts]
+      properties:
+        posts:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/ImportPostItem'
+
+    ImportPostItem:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+        coverUrl:
+          type: string
+        status:
+          type: string
+          enum: [draft, scheduled, published]
+          default: published
+        publishAt:
+          type: string
+          format: date-time
+        blocks:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        socialMediaLinks:
+          type: array
+          items:
+            $ref: '#/components/schemas/SocialMediaLink'
+
+    ImportResult:
+      type: object
+      properties:
+        imported:
+          type: integer
+        failed:
+          type: integer
+        errors:
+          type: array
+          items:
+            type: string
+
+    AccountStatus:
+      type: string
+      enum: [ACTIVE, DEACTIVATED, DELETED]
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        displayName:
+          type: string
+        profilePictureUrl:
+          type: string
+        status:
+          $ref: '#/components/schemas/AccountStatus'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        displayName:
+          type: string
+
+    NotificationPreferences:
+      type: object
+      properties:
+        pushEnabled:
+          type: boolean
+        newPodcastEnabled:
+          type: boolean
+
+    NotificationPreferencesResponse:
+      type: object
+      properties:
+        notifications:
+          $ref: '#/components/schemas/NotificationPreferences'
+        updatedAt:
+          type: string
+          format: date-time
+
+    UpdateNotificationPreferencesRequest:
+      type: object
+      required: [notifications]
+      properties:
+        notifications:
+          $ref: '#/components/schemas/NotificationPreferences'
+
+    ChangeUsernameRequest:
+      type: object
+      required: [username]
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 100
+
+    ChangePasswordRequest:
+      type: object
+      required: [newPassword]
+      properties:
+        newPassword:
+          type: string
+          minLength: 8
+
+    ProblemReportCategory:
+      type: string
+      enum: [APP_ERROR, CONTENT_ISSUE, ACCOUNT_ISSUE, OTHER]
+
+    ProblemReportPlatform:
+      type: string
+      enum: [ANDROID, IOS]
+
+    ProblemReportRequest:
+      type: object
+      required: [category, message]
+      properties:
+        category:
+          $ref: '#/components/schemas/ProblemReportCategory'
+        message:
+          type: string
+          maxLength: 4000
+        appVersion:
+          type: string
+        platform:
+          $ref: '#/components/schemas/ProblemReportPlatform'
+
+    ProblemReportResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        category:
+          $ref: '#/components/schemas/ProblemReportCategory'
+        message:
+          type: string
+        appVersion:
+          type: string
+        platform:
+          $ref: '#/components/schemas/ProblemReportPlatform'
+        createdAt:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+        error:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time

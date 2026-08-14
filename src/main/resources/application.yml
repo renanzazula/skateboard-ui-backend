@@ -1,6 +1,7 @@
 server:
-  # 8080 is skateboard-podcast-be, 8081 is Expo/Metro, 8180 is Keycloak
-  # (see skateboard-podcast-be/.docker/docker-compose.yaml) — pick a free port.
+  # 8080 is skateboard-podcast-be, 8081 is Expo/Metro, 8082 is
+  # skateboard-user-be, 8180 is Keycloak (see
+  # skateboard-podcast-be/.docker/docker-compose.yaml) — pick a free port.
   port: 8090
 
 spring:
@@ -11,12 +12,14 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          # Same Keycloak realm skateboard-podcast-be uses — there is only one
-          # realm today, and the FE's token (aud: skateboard-podcast-be) is
-          # relayed unmodified to downstream services, which validate it
-          # themselves. See infrastructure/security/SecurityConfig for why the
-          # JWKS URI is built directly from this instead of relying on OIDC
-          # discovery.
+          # One shared realm across all backend services (despite the
+          # "skateboard-podcast" name) — the FE's token carries an aud entry
+          # per downstream service (skateboard-podcast-be, skateboard-user-be,
+          # ...; see skateboard-infrastructure/.docker/keycloak/realm-export.json)
+          # and is relayed unmodified to each one, which validates it
+          # independently. See infrastructure/security/SecurityConfig for why
+          # the JWKS URI is built directly from this instead of relying on
+          # OIDC discovery.
           issuer-uri: ${APP_SECURITY_OAUTH2_ISSUER_URI:http://localhost:8180/realms/skateboard-podcast}
 
 clients:
@@ -24,6 +27,10 @@ clients:
     base-url: ${CLIENTS_PODCAST_BASE_URL:http://localhost:8080}
     connect-timeout-ms: ${CLIENTS_PODCAST_CONNECT_TIMEOUT_MS:3000}
     read-timeout-ms: ${CLIENTS_PODCAST_READ_TIMEOUT_MS:5000}
+  user:
+    base-url: ${CLIENTS_USER_BASE_URL:http://localhost:8082}
+    connect-timeout-ms: ${CLIENTS_USER_CONNECT_TIMEOUT_MS:3000}
+    read-timeout-ms: ${CLIENTS_USER_READ_TIMEOUT_MS:5000}
 
 app:
   cors:

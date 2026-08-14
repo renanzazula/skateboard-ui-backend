@@ -1,0 +1,452 @@
+# Vendored copy of skateboard-user-be/api/openapi.yaml — this is the
+# contract skateboard-user-be actually serves, not a spec this repo owns.
+# There is no shared contract registry between the two repos yet, so when
+# skateboard-user-be's spec changes, re-copy it here by hand (and update
+# UserController's @PreAuthorize authorities, which mirror this file's
+# x-required-permissions).
+#
+# pom.xml's openapi-generator-maven-plugin generates MeApi (WebClient
+# client) and its request/response DTOs from this file at build time, into
+# com.skateboard.uibackend.client.user.generated.*.
+#
+# This is a codegen input only (the downstream contract we call out to) — it
+# is not what UserController itself exposes to the frontend (different
+# paths: /me/** here vs. /api/me/** there). For that, see api/bff-openapi.yaml.
+
+openapi: "3.0.3"
+info:
+  title: Skateboard User Api
+  version: "1.0.0"
+
+tags:
+  - name: me
+    description: Self-service operations for the currently authenticated user
+
+paths:
+
+  /me:
+    get:
+      tags: [me]
+      operationId: getCurrentUser
+      summary: Get the current authenticated user's profile
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_USER_SELF_READ
+      responses:
+        '200':
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      tags: [me]
+      operationId: updateCurrentUser
+      summary: Update application-owned fields of the current user's profile
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_USER_SELF_UPDATE
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: Updated user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [me]
+      operationId: deleteCurrentUser
+      summary: Delete the current user's account (coordinated domain + identity lifecycle operation)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_USER_ACCOUNT_DELETE
+      responses:
+        '204':
+          description: Account deleted (idempotent — also returned if already deleted)
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /me/preferences:
+    get:
+      tags: [me]
+      operationId: getNotificationPreferences
+      summary: Get the current user's notification preferences
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_USER_SELF_READ
+      responses:
+        '200':
+          description: Notification preferences
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPreferencesResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      tags: [me]
+      operationId: updateNotificationPreferences
+      summary: Partially update the current user's notification preferences
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_USER_SELF_UPDATE
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateNotificationPreferencesRequest'
+      responses:
+        '200':
+          description: Updated notification preferences
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPreferencesResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /me/profile-picture:
+    post:
+      tags: [me]
+      operationId: uploadProfilePicture
+      summary: Upload/replace the current user's profile picture
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_USER_SELF_UPDATE
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Updated user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Invalid file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /me/username:
+    post:
+      tags: [me]
+      operationId: changeUsername
+      summary: Change the current user's username (coordinated with Keycloak)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_USER_SELF_UPDATE
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangeUsernameRequest'
+      responses:
+        '200':
+          description: Updated user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Invalid or already-taken username
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /me/change-password:
+    post:
+      tags: [me]
+      operationId: changePassword
+      summary: Change the current user's password (coordinated with Keycloak; passwords are never stored here)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_USER_PASSWORD_CHANGE
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '204':
+          description: Password changed
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /me/deactivate:
+    post:
+      tags: [me]
+      operationId: deactivateCurrentUser
+      summary: Deactivate the current user's account
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_USER_ACCOUNT_DEACTIVATE
+      responses:
+        '200':
+          description: Updated user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /me/problem-reports:
+    post:
+      tags: [me]
+      operationId: reportProblem
+      summary: Submit a problem report from the current user
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_USER_PROBLEM_REPORT_CREATE
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProblemReportRequest'
+      responses:
+        '201':
+          description: Problem report created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemReportResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+
+    AccountStatus:
+      type: string
+      enum: [ACTIVE, DEACTIVATED, DELETED]
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        displayName:
+          type: string
+        profilePictureUrl:
+          type: string
+        status:
+          $ref: '#/components/schemas/AccountStatus'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        displayName:
+          type: string
+
+    NotificationPreferences:
+      type: object
+      properties:
+        pushEnabled:
+          type: boolean
+        newPodcastEnabled:
+          type: boolean
+
+    NotificationPreferencesResponse:
+      type: object
+      properties:
+        notifications:
+          $ref: '#/components/schemas/NotificationPreferences'
+        updatedAt:
+          type: string
+          format: date-time
+
+    UpdateNotificationPreferencesRequest:
+      type: object
+      required: [notifications]
+      properties:
+        notifications:
+          $ref: '#/components/schemas/NotificationPreferences'
+
+    ChangeUsernameRequest:
+      type: object
+      required: [username]
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 100
+
+    ChangePasswordRequest:
+      type: object
+      required: [newPassword]
+      properties:
+        newPassword:
+          type: string
+          minLength: 8
+
+    ProblemReportCategory:
+      type: string
+      enum: [APP_ERROR, CONTENT_ISSUE, ACCOUNT_ISSUE, OTHER]
+
+    ProblemReportPlatform:
+      type: string
+      enum: [ANDROID, IOS]
+
+    ProblemReportRequest:
+      type: object
+      required: [category, message]
+      properties:
+        category:
+          $ref: '#/components/schemas/ProblemReportCategory'
+        message:
+          type: string
+          maxLength: 4000
+        appVersion:
+          type: string
+        platform:
+          $ref: '#/components/schemas/ProblemReportPlatform'
+
+    ProblemReportResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        category:
+          $ref: '#/components/schemas/ProblemReportCategory'
+        message:
+          type: string
+        appVersion:
+          type: string
+        platform:
+          $ref: '#/components/schemas/ProblemReportPlatform'
+        createdAt:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+        error:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
