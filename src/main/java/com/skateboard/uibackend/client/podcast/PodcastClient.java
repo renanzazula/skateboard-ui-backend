@@ -1,11 +1,13 @@
 package com.skateboard.uibackend.client.podcast;
 
 import com.skateboard.uibackend.client.podcast.generated.api.PodcastApi;
+import com.skateboard.uibackend.client.podcast.generated.model.CategoryResponse;
 import com.skateboard.uibackend.client.podcast.generated.model.CreatePostRequest;
 import com.skateboard.uibackend.client.podcast.generated.model.FeedPageResponse;
 import com.skateboard.uibackend.client.podcast.generated.model.ImportPostsRequest;
 import com.skateboard.uibackend.client.podcast.generated.model.ImportResult;
 import com.skateboard.uibackend.client.podcast.generated.model.PostResponse;
+import com.skateboard.uibackend.client.podcast.generated.model.SyncResultResponse;
 import com.skateboard.uibackend.client.podcast.generated.model.UpdatePostRequest;
 import com.skateboard.uibackend.exception.DownstreamServiceException;
 import org.springframework.http.HttpStatus;
@@ -13,8 +15,10 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
 import java.util.UUID;
 import java.util.function.Supplier;
 
@@ -62,9 +66,31 @@ public class PodcastClient {
         return call(() -> podcastApi.importPodcastPosts(request));
     }
 
+    public SyncResultResponse triggerSync() {
+        return call(podcastApi::syncPodcastFromYoutube);
+    }
+
+    public List<CategoryResponse> getCategories() {
+        return callList(podcastApi::getCategories);
+    }
+
+    public FeedPageResponse getCategoryPosts(String slug, Integer page, Integer size) {
+        return call(() -> podcastApi.getCategoryPosts(slug, page, size));
+    }
+
     private <T> T call(Supplier<Mono<T>> invocation) {
         try {
             return invocation.get().block();
+        } catch (WebClientResponseException ex) {
+            throw mapResponseException(ex);
+        } catch (WebClientRequestException ex) {
+            throw serviceUnavailable(ex);
+        }
+    }
+
+    private <T> List<T> callList(Supplier<Flux<T>> invocation) {
+        try {
+            return invocation.get().collectList().block();
         } catch (WebClientResponseException ex) {
             throw mapResponseException(ex);
         } catch (WebClientRequestException ex) {

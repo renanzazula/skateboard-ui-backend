@@ -1,14 +1,17 @@
 package com.skateboard.uibackend.service;
 
 import com.skateboard.uibackend.client.podcast.PodcastClient;
+import com.skateboard.uibackend.client.podcast.generated.model.CategoryResponse;
 import com.skateboard.uibackend.client.podcast.generated.model.CreatePostRequest;
 import com.skateboard.uibackend.client.podcast.generated.model.FeedPageResponse;
 import com.skateboard.uibackend.client.podcast.generated.model.ImportPostsRequest;
 import com.skateboard.uibackend.client.podcast.generated.model.ImportResult;
 import com.skateboard.uibackend.client.podcast.generated.model.PostResponse;
+import com.skateboard.uibackend.client.podcast.generated.model.SyncResultResponse;
 import com.skateboard.uibackend.client.podcast.generated.model.UpdatePostRequest;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -47,5 +50,17 @@ public class PodcastService {
 
     public ImportResult importPosts(ImportPostsRequest request) {
         return podcastClient.importPosts(request);
+    }
+
+    public SyncResultResponse triggerSync() {
+        return podcastClient.triggerSync();
+    }
+
+    public List<CategoryResponse> getCategories() {
+        return podcastClient.getCategories();
+    }
+
+    public FeedPageResponse getCategoryPosts(String slug, Integer page, Integer size) {
+        return podcastClient.getCategoryPosts(slug, page, size);
     }
 }

@@ -1,10 +1,12 @@
 package com.skateboard.uibackend.controller;
 
+import com.skateboard.uibackend.client.podcast.generated.model.CategoryResponse;
 import com.skateboard.uibackend.client.podcast.generated.model.CreatePostRequest;
 import com.skateboard.uibackend.client.podcast.generated.model.FeedPageResponse;
 import com.skateboard.uibackend.client.podcast.generated.model.ImportPostsRequest;
 import com.skateboard.uibackend.client.podcast.generated.model.ImportResult;
 import com.skateboard.uibackend.client.podcast.generated.model.PostResponse;
+import com.skateboard.uibackend.client.podcast.generated.model.SyncResultResponse;
 import com.skateboard.uibackend.client.podcast.generated.model.UpdatePostRequest;
 import com.skateboard.uibackend.service.PodcastService;
 import org.springframework.http.HttpStatus;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -76,5 +79,25 @@ public class PodcastController {
     @PreAuthorize("hasAuthority('FUNC_PODCAST_IMPORT_JSON')")
     public ImportResult importPosts(@RequestBody ImportPostsRequest request) {
         return podcastService.importPosts(request);
+    }
+
+    @PostMapping("/api/podcast/sync")
+    @PreAuthorize("hasAuthority('FUNC_PODCAST_IMPORT_JSON')")
+    public SyncResultResponse triggerSync() {
+        return podcastService.triggerSync();
+    }
+
+    @GetMapping("/api/categories")
+    @PreAuthorize("hasAuthority('FUNC_TAB_PODCAST')")
+    public List<CategoryResponse> getCategories() {
+        return podcastService.getCategories();
+    }
+
+    @GetMapping("/api/categories/{slug}/posts")
+    @PreAuthorize("hasAuthority('FUNC_TAB_PODCAST')")
+    public FeedPageResponse getCategoryPosts(@PathVariable String slug,
+                                              @RequestParam(defaultValue = "0") Integer page,
+                                              @RequestParam(defaultValue = "10") Integer size) {
+        return podcastService.getCategoryPosts(slug, page, size);
     }
 }
