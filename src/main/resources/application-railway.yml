@@ -32,4 +32,4 @@ app:
 
 logging:
   pattern:
-    console: "%d{HH:mm:ss.SSS} %-5level [%X{correlationId}] %logger{36} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{correlationId}] [%thread] %logger{36} - %msg%n"
