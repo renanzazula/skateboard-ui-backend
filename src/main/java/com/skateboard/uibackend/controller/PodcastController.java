@@ -1,18 +1,22 @@
 package com.skateboard.uibackend.controller;
 
+import com.skateboard.uibackend.client.podcast.generated.model.AdminCategoryResponse;
 import com.skateboard.uibackend.client.podcast.generated.model.CategoryResponse;
 import com.skateboard.uibackend.client.podcast.generated.model.CreatePostRequest;
 import com.skateboard.uibackend.client.podcast.generated.model.FeedPageResponse;
 import com.skateboard.uibackend.client.podcast.generated.model.ImportPostsRequest;
 import com.skateboard.uibackend.client.podcast.generated.model.ImportResult;
 import com.skateboard.uibackend.client.podcast.generated.model.PostResponse;
+import com.skateboard.uibackend.client.podcast.generated.model.ReorderCategoriesRequest;
 import com.skateboard.uibackend.client.podcast.generated.model.SyncResultResponse;
+import com.skateboard.uibackend.client.podcast.generated.model.UpdateCategoryRequest;
 import com.skateboard.uibackend.client.podcast.generated.model.UpdatePostRequest;
 import com.skateboard.uibackend.service.PodcastService;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -99,5 +103,30 @@ public class PodcastController {
                                               @RequestParam(defaultValue = "0") Integer page,
                                               @RequestParam(defaultValue = "10") Integer size) {
         return podcastService.getCategoryPosts(slug, page, size);
+    }
+
+    @GetMapping("/api/admin/categories")
+    @PreAuthorize("hasAuthority('FUNC_PODCAST_MANAGE_CATEGORIES')")
+    public List<AdminCategoryResponse> getAdminCategories() {
+        return podcastService.getAdminCategories();
+    }
+
+    @PatchMapping("/api/admin/categories/{id}")
+    @PreAuthorize("hasAuthority('FUNC_PODCAST_MANAGE_CATEGORIES')")
+    public AdminCategoryResponse updateCategory(@PathVariable UUID id,
+                                                @RequestBody UpdateCategoryRequest request) {
+        return podcastService.updateCategory(id, request);
+    }
+
+    @PutMapping("/api/admin/categories/order")
+    @PreAuthorize("hasAuthority('FUNC_PODCAST_MANAGE_CATEGORIES')")
+    public List<AdminCategoryResponse> reorderCategories(@RequestBody ReorderCategoriesRequest request) {
+        return podcastService.reorderCategories(request);
+    }
+
+    @PutMapping("/api/admin/categories/{id}/default")
+    @PreAuthorize("hasAuthority('FUNC_PODCAST_MANAGE_CATEGORIES')")
+    public AdminCategoryResponse setDefaultCategory(@PathVariable UUID id) {
+        return podcastService.setDefaultCategory(id);
     }
 }
