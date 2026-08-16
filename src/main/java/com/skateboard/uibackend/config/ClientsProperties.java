@@ -8,6 +8,7 @@ public class ClientsProperties {
 
     private final Podcast podcast = new Podcast();
     private final User user = new User();
+    private final AppConfig appConfig = new AppConfig();
 
     @NestedConfigurationProperty
     public Podcast getPodcast() {
@@ -17,6 +18,11 @@ public class ClientsProperties {
     @NestedConfigurationProperty
     public User getUser() {
         return user;
+    }
+
+    @NestedConfigurationProperty
+    public AppConfig getAppConfig() {
+        return appConfig;
     }
 
     public static class Podcast {
@@ -50,6 +56,36 @@ public class ClientsProperties {
     }
 
     public static class User {
+        private String baseUrl;
+        private int connectTimeoutMs = 3000;
+        private int readTimeoutMs = 5000;
+
+        public String getBaseUrl() {
+            return baseUrl;
+        }
+
+        public void setBaseUrl(String baseUrl) {
+            this.baseUrl = baseUrl;
+        }
+
+        public int getConnectTimeoutMs() {
+            return connectTimeoutMs;
+        }
+
+        public void setConnectTimeoutMs(int connectTimeoutMs) {
+            this.connectTimeoutMs = connectTimeoutMs;
+        }
+
+        public int getReadTimeoutMs() {
+            return readTimeoutMs;
+        }
+
+        public void setReadTimeoutMs(int readTimeoutMs) {
+            this.readTimeoutMs = readTimeoutMs;
+        }
+    }
+
+    public static class AppConfig {
         private String baseUrl;
         private int connectTimeoutMs = 3000;
         private int readTimeoutMs = 5000;

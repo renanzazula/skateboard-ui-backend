@@ -1,0 +1,477 @@
+# Vendored copy of skateboard-app-config-be/api/openapi.yaml — this is the
+# contract skateboard-app-config-be actually serves, not a spec this repo
+# owns. There is no shared contract registry between the two repos yet, so
+# when skateboard-app-config-be's spec changes, re-copy it here by hand (and
+# update AppConfigController's @PreAuthorize authorities, which mirror this
+# file's x-required-permissions).
+#
+# pom.xml's openapi-generator-maven-plugin generates PublicApi/AdminApi
+# (WebClient clients, one per tag) and their request/response DTOs from this
+# file at build time, into com.skateboard.uibackend.client.appconfig.generated.*.
+#
+# This is an *inbound* codegen input only (the downstream contract we call
+# out to) — it is not what AppConfigController itself exposes to the
+# frontend. For that, see api/bff-openapi.yaml.
+
+openapi: "3.0.3"
+info:
+  title: Skateboard App Config Api
+  version: "1.0.0"
+
+tags:
+  - name: public
+    description: Anonymous, pre-auth configuration endpoints
+  - name: admin
+    description: Branding management endpoints (FUNC_TAB_SETTINGS_BRANDING)
+
+paths:
+
+  /api/config:
+    get:
+      tags: [public]
+      operationId: getPublicConfig
+      summary: Get the public app configuration required to render the client (anonymous)
+      responses:
+        '200':
+          description: Public app configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicConfigResponse'
+
+  /api/config/branding:
+    get:
+      tags: [admin]
+      operationId: getBrandingConfig
+      summary: Load the complete branding configuration for the admin screen
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_TAB_SETTINGS_BRANDING
+      responses:
+        '200':
+          description: Branding configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrandingConfigResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_TAB_SETTINGS_BRANDING required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/config/branding/login-background:
+    post:
+      tags: [admin]
+      operationId: uploadLoginBackground
+      summary: Upload/replace the login background image (admin only)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_TAB_SETTINGS_BRANDING
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Login background updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrandingConfigResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_TAB_SETTINGS_BRANDING required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [admin]
+      operationId: removeLoginBackground
+      summary: Remove the login background image (admin only)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_TAB_SETTINGS_BRANDING
+      responses:
+        '200':
+          description: Login background removed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrandingConfigResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_TAB_SETTINGS_BRANDING required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/config/branding/app-logo:
+    post:
+      tags: [admin]
+      operationId: uploadAppLogo
+      summary: Upload/replace the app logo image (admin only)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_TAB_SETTINGS_BRANDING
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: App logo updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrandingConfigResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_TAB_SETTINGS_BRANDING required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [admin]
+      operationId: removeAppLogo
+      summary: Remove the app logo image (admin only)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_TAB_SETTINGS_BRANDING
+      responses:
+        '200':
+          description: App logo removed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrandingConfigResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_TAB_SETTINGS_BRANDING required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/config/branding/assets:
+    get:
+      tags: [admin]
+      operationId: listBrandingAssets
+      summary: List branding assets (admin only)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_TAB_SETTINGS_BRANDING
+      responses:
+        '200':
+          description: Branding assets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BrandingAssetResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_TAB_SETTINGS_BRANDING required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags: [admin]
+      operationId: uploadBrandingAsset
+      summary: Upload a new named branding asset (admin only)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_TAB_SETTINGS_BRANDING
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [name, file]
+              properties:
+                name:
+                  type: string
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Branding asset created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrandingAssetResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_TAB_SETTINGS_BRANDING required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: An asset with this name already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/config/branding/assets/{assetId}:
+    put:
+      tags: [admin]
+      operationId: replaceBrandingAsset
+      summary: Replace an existing branding asset's image (admin only)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_TAB_SETTINGS_BRANDING
+      parameters:
+        - name: assetId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Branding asset replaced
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrandingAssetResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_TAB_SETTINGS_BRANDING required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Branding asset not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [admin]
+      operationId: removeBrandingAsset
+      summary: Remove a branding asset (admin only)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_TAB_SETTINGS_BRANDING
+      parameters:
+        - name: assetId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Branding asset removed
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_TAB_SETTINGS_BRANDING required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Branding asset not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+
+    PublicConfigResponse:
+      type: object
+      properties:
+        loginBackgroundUrl:
+          type: string
+          nullable: true
+        loginBackgroundVersion:
+          type: integer
+        loginBackgroundUpdatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        appLogoUrl:
+          type: string
+          nullable: true
+        appLogoVersion:
+          type: integer
+        appLogoUpdatedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    BrandingConfigResponse:
+      type: object
+      properties:
+        loginBackgroundUrl:
+          type: string
+          nullable: true
+        loginBackgroundVersion:
+          type: integer
+        loginBackgroundUpdatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        appLogoUrl:
+          type: string
+          nullable: true
+        appLogoVersion:
+          type: integer
+        appLogoUpdatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        assets:
+          type: array
+          items:
+            $ref: '#/components/schemas/BrandingAssetResponse'
+
+    BrandingAssetResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        url:
+          type: string
+        contentType:
+          type: string
+        version:
+          type: integer
+        updatedAt:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+        error:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time

@@ -1,7 +1,8 @@
 server:
   # 8080 is skateboard-podcast-be, 8081 is Expo/Metro, 8082 is
-  # skateboard-user-be, 8180 is Keycloak (see
-  # skateboard-podcast-be/.docker/docker-compose.yaml) — pick a free port.
+  # skateboard-user-be, 8083 is skateboard-app-config-be, 8180 is Keycloak
+  # (see skateboard-infrastructure/.docker/docker-compose.yaml) — pick a free
+  # port.
   port: 8090
 
 spring:
@@ -31,6 +32,10 @@ clients:
     base-url: ${CLIENTS_USER_BASE_URL:http://localhost:8082}
     connect-timeout-ms: ${CLIENTS_USER_CONNECT_TIMEOUT_MS:3000}
     read-timeout-ms: ${CLIENTS_USER_READ_TIMEOUT_MS:5000}
+  app-config:
+    base-url: ${CLIENTS_APP_CONFIG_BASE_URL:http://localhost:8083}
+    connect-timeout-ms: ${CLIENTS_APP_CONFIG_CONNECT_TIMEOUT_MS:3000}
+    read-timeout-ms: ${CLIENTS_APP_CONFIG_READ_TIMEOUT_MS:5000}
 
 app:
   cors:
