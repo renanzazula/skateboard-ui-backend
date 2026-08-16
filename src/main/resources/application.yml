@@ -23,6 +23,14 @@ spring:
           # OIDC discovery.
           issuer-uri: ${APP_SECURITY_OAUTH2_ISSUER_URI:http://localhost:8180/realms/skateboard-podcast}
 
+  servlet:
+    multipart:
+      # This BFF proxies uploads to app-config-be and user-be, both of which
+      # allow up to 5MB/6MB — keep these at least as high or uploads get
+      # rejected here before ever reaching the downstream service.
+      max-file-size: 5MB
+      max-request-size: 6MB
+
 clients:
   podcast:
     base-url: ${CLIENTS_PODCAST_BASE_URL:http://localhost:8080}
