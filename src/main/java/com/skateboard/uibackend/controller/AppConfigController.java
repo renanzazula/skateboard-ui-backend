@@ -3,6 +3,7 @@ package com.skateboard.uibackend.controller;
 import com.skateboard.uibackend.client.appconfig.generated.model.BrandingAssetResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.BrandingConfigResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.PublicConfigResponse;
+import com.skateboard.uibackend.client.appconfig.generated.model.UpdateLoginTextRequest;
 import com.skateboard.uibackend.service.AppConfigService;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -58,6 +60,12 @@ public class AppConfigController {
     @PreAuthorize("hasAuthority('FUNC_TAB_SETTINGS_BRANDING')")
     public BrandingConfigResponse removeLoginBackground() {
         return appConfigService.removeLoginBackground();
+    }
+
+    @PutMapping("/api/config/branding/login-text")
+    @PreAuthorize("hasAuthority('FUNC_TAB_SETTINGS_BRANDING')")
+    public BrandingConfigResponse updateLoginText(@RequestBody UpdateLoginTextRequest request) {
+        return appConfigService.updateLoginText(request);
     }
 
     @PostMapping("/api/config/branding/app-logo")

@@ -5,6 +5,7 @@ import com.skateboard.uibackend.client.appconfig.generated.api.PublicApi;
 import com.skateboard.uibackend.client.appconfig.generated.model.BrandingAssetResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.BrandingConfigResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.PublicConfigResponse;
+import com.skateboard.uibackend.client.appconfig.generated.model.UpdateLoginTextRequest;
 import com.skateboard.uibackend.exception.DownstreamServiceException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -64,6 +65,10 @@ public class AppConfigClient {
 
     public BrandingConfigResponse removeLoginBackground() {
         return call(adminApi::removeLoginBackground);
+    }
+
+    public BrandingConfigResponse updateLoginText(UpdateLoginTextRequest request) {
+        return call(() -> adminApi.updateLoginText(request));
     }
 
     public BrandingConfigResponse uploadAppLogo(MultipartFile file) {

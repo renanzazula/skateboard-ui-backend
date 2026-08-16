@@ -4,6 +4,7 @@ import com.skateboard.uibackend.client.appconfig.AppConfigClient;
 import com.skateboard.uibackend.client.appconfig.generated.model.BrandingAssetResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.BrandingConfigResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.PublicConfigResponse;
+import com.skateboard.uibackend.client.appconfig.generated.model.UpdateLoginTextRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -38,6 +39,10 @@ public class AppConfigService {
 
     public BrandingConfigResponse removeLoginBackground() {
         return appConfigClient.removeLoginBackground();
+    }
+
+    public BrandingConfigResponse updateLoginText(UpdateLoginTextRequest request) {
+        return appConfigClient.updateLoginText(request);
     }
 
     public BrandingConfigResponse uploadAppLogo(MultipartFile file) {

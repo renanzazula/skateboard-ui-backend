@@ -68,6 +68,41 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/config/branding/login-text:
+    put:
+      tags: [admin]
+      operationId: updateLoginText
+      summary: Update the configurable login screen title and message (admin only)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_TAB_SETTINGS_BRANDING
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateLoginTextRequest'
+      responses:
+        '200':
+          description: Login text updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrandingConfigResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_TAB_SETTINGS_BRANDING required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/config/branding/login-background:
     post:
       tags: [admin]
@@ -418,6 +453,12 @@ components:
           type: string
           format: date-time
           nullable: true
+        loginTitle:
+          type: string
+          nullable: true
+        loginMessage:
+          type: string
+          nullable: true
 
     BrandingConfigResponse:
       type: object
@@ -440,10 +481,26 @@ components:
           type: string
           format: date-time
           nullable: true
+        loginTitle:
+          type: string
+          nullable: true
+        loginMessage:
+          type: string
+          nullable: true
         assets:
           type: array
           items:
             $ref: '#/components/schemas/BrandingAssetResponse'
+
+    UpdateLoginTextRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          nullable: true
+        message:
+          type: string
+          nullable: true
 
     BrandingAssetResponse:
       type: object
