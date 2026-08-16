@@ -1,13 +1,16 @@
 package com.skateboard.uibackend.client.podcast;
 
 import com.skateboard.uibackend.client.podcast.generated.api.PodcastApi;
+import com.skateboard.uibackend.client.podcast.generated.model.AdminCategoryResponse;
 import com.skateboard.uibackend.client.podcast.generated.model.CategoryResponse;
 import com.skateboard.uibackend.client.podcast.generated.model.CreatePostRequest;
 import com.skateboard.uibackend.client.podcast.generated.model.FeedPageResponse;
 import com.skateboard.uibackend.client.podcast.generated.model.ImportPostsRequest;
 import com.skateboard.uibackend.client.podcast.generated.model.ImportResult;
 import com.skateboard.uibackend.client.podcast.generated.model.PostResponse;
+import com.skateboard.uibackend.client.podcast.generated.model.ReorderCategoriesRequest;
 import com.skateboard.uibackend.client.podcast.generated.model.SyncResultResponse;
+import com.skateboard.uibackend.client.podcast.generated.model.UpdateCategoryRequest;
 import com.skateboard.uibackend.client.podcast.generated.model.UpdatePostRequest;
 import com.skateboard.uibackend.exception.DownstreamServiceException;
 import org.springframework.http.HttpStatus;
@@ -76,6 +79,22 @@ public class PodcastClient {
 
     public FeedPageResponse getCategoryPosts(String slug, Integer page, Integer size) {
         return call(() -> podcastApi.getCategoryPosts(slug, page, size));
+    }
+
+    public List<AdminCategoryResponse> getAdminCategories() {
+        return callList(podcastApi::getAdminCategories);
+    }
+
+    public AdminCategoryResponse updateCategory(UUID id, UpdateCategoryRequest request) {
+        return call(() -> podcastApi.updateCategory(id, request));
+    }
+
+    public List<AdminCategoryResponse> reorderCategories(ReorderCategoriesRequest request) {
+        return callList(() -> podcastApi.reorderCategories(request));
+    }
+
+    public AdminCategoryResponse setDefaultCategory(UUID id) {
+        return call(() -> podcastApi.setDefaultCategory(id));
     }
 
     private <T> T call(Supplier<Mono<T>> invocation) {

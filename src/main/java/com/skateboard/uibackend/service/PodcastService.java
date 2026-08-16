@@ -1,13 +1,16 @@
 package com.skateboard.uibackend.service;
 
 import com.skateboard.uibackend.client.podcast.PodcastClient;
+import com.skateboard.uibackend.client.podcast.generated.model.AdminCategoryResponse;
 import com.skateboard.uibackend.client.podcast.generated.model.CategoryResponse;
 import com.skateboard.uibackend.client.podcast.generated.model.CreatePostRequest;
 import com.skateboard.uibackend.client.podcast.generated.model.FeedPageResponse;
 import com.skateboard.uibackend.client.podcast.generated.model.ImportPostsRequest;
 import com.skateboard.uibackend.client.podcast.generated.model.ImportResult;
 import com.skateboard.uibackend.client.podcast.generated.model.PostResponse;
+import com.skateboard.uibackend.client.podcast.generated.model.ReorderCategoriesRequest;
 import com.skateboard.uibackend.client.podcast.generated.model.SyncResultResponse;
+import com.skateboard.uibackend.client.podcast.generated.model.UpdateCategoryRequest;
 import com.skateboard.uibackend.client.podcast.generated.model.UpdatePostRequest;
 import org.springframework.stereotype.Service;
 
@@ -62,5 +65,21 @@ public class PodcastService {
 
     public FeedPageResponse getCategoryPosts(String slug, Integer page, Integer size) {
         return podcastClient.getCategoryPosts(slug, page, size);
+    }
+
+    public List<AdminCategoryResponse> getAdminCategories() {
+        return podcastClient.getAdminCategories();
+    }
+
+    public AdminCategoryResponse updateCategory(UUID id, UpdateCategoryRequest request) {
+        return podcastClient.updateCategory(id, request);
+    }
+
+    public List<AdminCategoryResponse> reorderCategories(ReorderCategoriesRequest request) {
+        return podcastClient.reorderCategories(request);
+    }
+
+    public AdminCategoryResponse setDefaultCategory(UUID id) {
+        return podcastClient.setDefaultCategory(id);
     }
 }
