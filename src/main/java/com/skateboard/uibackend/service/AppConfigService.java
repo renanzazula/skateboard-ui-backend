@@ -3,6 +3,8 @@ package com.skateboard.uibackend.service;
 import com.skateboard.uibackend.client.appconfig.AppConfigClient;
 import com.skateboard.uibackend.client.appconfig.generated.model.BrandingAssetResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.BrandingConfigResponse;
+import com.skateboard.uibackend.client.appconfig.generated.model.HomeVideoCategoryConfigRequest;
+import com.skateboard.uibackend.client.appconfig.generated.model.HomeVideoCategoryConfigResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.PublicConfigResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdateLoginTextRequest;
 import org.springframework.stereotype.Service;
@@ -67,5 +69,13 @@ public class AppConfigService {
 
     public void removeBrandingAsset(UUID assetId) {
         appConfigClient.removeBrandingAsset(assetId);
+    }
+
+    public HomeVideoCategoryConfigResponse getHomeVideoCategoryConfig() {
+        return appConfigClient.getHomeVideoCategoryConfig();
+    }
+
+    public HomeVideoCategoryConfigResponse updateHomeVideoCategoryConfig(HomeVideoCategoryConfigRequest request) {
+        return appConfigClient.updateHomeVideoCategoryConfig(request);
     }
 }

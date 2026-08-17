@@ -2,6 +2,8 @@ package com.skateboard.uibackend.controller;
 
 import com.skateboard.uibackend.client.appconfig.generated.model.BrandingAssetResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.BrandingConfigResponse;
+import com.skateboard.uibackend.client.appconfig.generated.model.HomeVideoCategoryConfigRequest;
+import com.skateboard.uibackend.client.appconfig.generated.model.HomeVideoCategoryConfigResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.PublicConfigResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdateLoginTextRequest;
 import com.skateboard.uibackend.service.AppConfigService;
@@ -106,5 +108,17 @@ public class AppConfigController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void removeBrandingAsset(@PathVariable UUID assetId) {
         appConfigService.removeBrandingAsset(assetId);
+    }
+
+    @GetMapping("/api/config/home/video-categories")
+    @PreAuthorize("hasAuthority('FUNC_HOME_CATEGORY_CONFIG')")
+    public HomeVideoCategoryConfigResponse getHomeVideoCategoryConfig() {
+        return appConfigService.getHomeVideoCategoryConfig();
+    }
+
+    @PutMapping("/api/config/home/video-categories")
+    @PreAuthorize("hasAuthority('FUNC_HOME_CATEGORY_CONFIG')")
+    public HomeVideoCategoryConfigResponse updateHomeVideoCategoryConfig(@RequestBody HomeVideoCategoryConfigRequest request) {
+        return appConfigService.updateHomeVideoCategoryConfig(request);
     }
 }

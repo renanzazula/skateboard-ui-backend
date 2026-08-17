@@ -1,9 +1,12 @@
 package com.skateboard.uibackend.client.appconfig;
 
 import com.skateboard.uibackend.client.appconfig.generated.api.AdminApi;
+import com.skateboard.uibackend.client.appconfig.generated.api.HomeApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.PublicApi;
 import com.skateboard.uibackend.client.appconfig.generated.model.BrandingAssetResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.BrandingConfigResponse;
+import com.skateboard.uibackend.client.appconfig.generated.model.HomeVideoCategoryConfigRequest;
+import com.skateboard.uibackend.client.appconfig.generated.model.HomeVideoCategoryConfigResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.PublicConfigResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdateLoginTextRequest;
 import com.skateboard.uibackend.exception.DownstreamServiceException;
@@ -22,6 +25,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -40,14 +44,24 @@ public class AppConfigClient {
 
     private final PublicApi publicApi;
     private final AdminApi adminApi;
+    private final HomeApi homeApi;
 
-    public AppConfigClient(PublicApi publicApi, AdminApi adminApi) {
+    public AppConfigClient(PublicApi publicApi, AdminApi adminApi, HomeApi homeApi) {
         this.publicApi = publicApi;
         this.adminApi = adminApi;
+        this.homeApi = homeApi;
     }
 
     public PublicConfigResponse getPublicConfig() {
         return call(publicApi::getPublicConfig);
+    }
+
+    public HomeVideoCategoryConfigResponse getHomeVideoCategoryConfig() {
+        return call(homeApi::getHomeVideoCategoryConfig);
+    }
+
+    public HomeVideoCategoryConfigResponse updateHomeVideoCategoryConfig(HomeVideoCategoryConfigRequest request) {
+        return call(() -> homeApi.updateHomeVideoCategoryConfig(request), AppConfigClient::homeMessageFor);
     }
 
     public BrandingConfigResponse getBrandingConfig() {
@@ -111,10 +125,14 @@ public class AppConfigClient {
     }
 
     private <T> T call(Supplier<Mono<T>> invocation) {
+        return call(invocation, AppConfigClient::messageFor);
+    }
+
+    private <T> T call(Supplier<Mono<T>> invocation, Function<HttpStatusCode, String> messageResolver) {
         try {
             return invocation.get().block();
         } catch (WebClientResponseException ex) {
-            throw mapResponseException(ex);
+            throw mapResponseException(ex, messageResolver);
         } catch (WebClientRequestException ex) {
             throw serviceUnavailable(ex);
         }
@@ -124,18 +142,18 @@ public class AppConfigClient {
         try {
             return invocation.get().collectList().block();
         } catch (WebClientResponseException ex) {
-            throw mapResponseException(ex);
+            throw mapResponseException(ex, AppConfigClient::messageFor);
         } catch (WebClientRequestException ex) {
             throw serviceUnavailable(ex);
         }
     }
 
-    private DownstreamServiceException mapResponseException(WebClientResponseException ex) {
+    private DownstreamServiceException mapResponseException(WebClientResponseException ex, Function<HttpStatusCode, String> messageResolver) {
         HttpStatusCode status = ex.getStatusCode();
         if (status.is5xxServerError()) {
             return serviceUnavailable(ex);
         }
-        return new DownstreamServiceException(status, codeFor(status), messageFor(status), ex);
+        return new DownstreamServiceException(status, codeFor(status), messageResolver.apply(status), ex);
     }
 
     private DownstreamServiceException serviceUnavailable(Throwable cause) {
@@ -167,6 +185,16 @@ public class AppConfigClient {
             return "A branding asset with this name already exists";
         }
         return "App config service rejected the request";
+    }
+
+    // Home category config's only reachable error status is 400 (invalid
+    // mode/selection) — everything else falls back to messageFor's generic
+    // text rather than duplicating it.
+    private static String homeMessageFor(HttpStatusCode status) {
+        if (status.equals(HttpStatus.BAD_REQUEST)) {
+            return "Select at least one category, or choose \"All categories\".";
+        }
+        return messageFor(status);
     }
 
     private Path toTempFile(MultipartFile file, String prefix) {
