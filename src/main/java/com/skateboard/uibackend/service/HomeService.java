@@ -108,7 +108,9 @@ public class HomeService {
                 continue;
             }
             videosById.putIfAbsent(post.getId(),
-                    new HomeVideoResponse(post.getId(), post.getSlug(), post.getTitle(), post.getCoverUrl(), post.getYoutubeVideoId(), categorySlug));
+                    new HomeVideoResponse(post.getId(), post.getSlug(), post.getTitle(),
+                            post.getCoverUrl(), post.getCoverWidth(), post.getCoverHeight(),
+                            post.getYoutubeVideoId(), categorySlug));
         }
     }
 

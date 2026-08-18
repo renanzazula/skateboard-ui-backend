@@ -52,7 +52,7 @@ class HomeControllerSecurityTest {
     @Test
     void allowsATokenWithTheRequiredAuthority() throws Exception {
         given(homeService.getVideos())
-                .willReturn(List.of(new HomeVideoResponse(UUID.randomUUID(), "title", "Title", "cover.png", null, "podcasts")));
+                .willReturn(List.of(new HomeVideoResponse(UUID.randomUUID(), "title", "Title", "cover.png", 1280, 720, null, "podcasts")));
 
         mockMvc.perform(get("/api/home/videos").with(jwt().authorities(() -> "FUNC_TAB_HOME")))
                 .andExpect(status().isOk())

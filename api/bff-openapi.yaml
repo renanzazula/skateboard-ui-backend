@@ -1813,6 +1813,18 @@ components:
         thumbnailUrl:
           type: string
           nullable: true
+        thumbnailWidth:
+          type: integer
+          nullable: true
+          description: >
+            Intrinsic pixel width of thumbnailUrl, captured by podcast-be's
+            YouTube sync. Lets the Home masonry gallery size a tile from its real
+            aspect ratio without measuring the image first. Null on videos whose
+            dimensions were never captured — clients must fall back to probing.
+        thumbnailHeight:
+          type: integer
+          nullable: true
+          description: Intrinsic pixel height of thumbnailUrl; see thumbnailWidth.
         youtubeVideoId:
           type: string
           nullable: true

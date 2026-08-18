@@ -122,6 +122,24 @@ class HomeServiceTest {
         assertThat(videos).extracting(HomeVideoResponse::title).containsExactly("Fallback Video");
     }
 
+    @Test
+    void mapsCoverDimensionsThroughToTheThumbnailFields() {
+        when(appConfigClient.getHomeVideoCategoryConfig())
+                .thenReturn(new HomeVideoCategoryConfigResponse().mode(HomeVideoCategoryConfigMode.ALL).enabledCategoryIds(List.of()));
+
+        PostResponse sized = post("Sized", PostResponse.StatusEnum.PUBLISHED).coverWidth(1280).coverHeight(720);
+        // Videos whose dimensions were never captured stay null so the client
+        // knows to fall back to probing rather than assuming a ratio.
+        PostResponse unsized = post("Unsized", PostResponse.StatusEnum.PUBLISHED);
+        when(podcastClient.getFeed(eq(0), anyInt()))
+                .thenReturn(new FeedPageResponse().posts(List.of(sized, unsized)).page(0).size(50).total(2L));
+
+        List<HomeVideoResponse> videos = service.getVideos();
+
+        assertThat(videos).extracting(HomeVideoResponse::thumbnailWidth).containsExactly(1280, null);
+        assertThat(videos).extracting(HomeVideoResponse::thumbnailHeight).containsExactly(720, null);
+    }
+
     private PostResponse post(String title, PostResponse.StatusEnum status) {
         return new PostResponse()
                 .id(UUID.randomUUID())
