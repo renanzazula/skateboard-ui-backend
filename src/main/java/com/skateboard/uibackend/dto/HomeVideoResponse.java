@@ -11,5 +11,7 @@ import java.util.UUID;
  * is no by-id read route. See api/bff-openapi.yaml's "home" tag for the
  * published contract.
  */
-public record HomeVideoResponse(UUID id, String slug, String title, String thumbnailUrl, String youtubeVideoId, String category) {
+public record HomeVideoResponse(UUID id, String slug, String title, String thumbnailUrl,
+                                Integer thumbnailWidth, Integer thumbnailHeight,
+                                String youtubeVideoId, String category) {
 }
