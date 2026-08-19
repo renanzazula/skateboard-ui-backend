@@ -2,9 +2,11 @@ package com.skateboard.uibackend.controller;
 
 import com.skateboard.uibackend.client.appconfig.generated.model.BrandingAssetResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.BrandingConfigResponse;
+import com.skateboard.uibackend.client.appconfig.generated.model.HomeFeaturedPlayerConfigResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeVideoCategoryConfigRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeVideoCategoryConfigResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.PublicConfigResponse;
+import com.skateboard.uibackend.client.appconfig.generated.model.UpdateHomeFeaturedPlayerConfigRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdateLoginTextRequest;
 import com.skateboard.uibackend.service.AppConfigService;
 import org.springframework.http.HttpStatus;
@@ -120,5 +122,17 @@ public class AppConfigController {
     @PreAuthorize("hasAuthority('FUNC_HOME_CATEGORY_CONFIG')")
     public HomeVideoCategoryConfigResponse updateHomeVideoCategoryConfig(@RequestBody HomeVideoCategoryConfigRequest request) {
         return appConfigService.updateHomeVideoCategoryConfig(request);
+    }
+
+    @GetMapping("/api/config/home/featured-player")
+    @PreAuthorize("hasAuthority('FUNC_HOME_FEATURED_PLAYER_CONFIG')")
+    public HomeFeaturedPlayerConfigResponse getHomeFeaturedPlayerConfig() {
+        return appConfigService.getHomeFeaturedPlayerConfig();
+    }
+
+    @PutMapping("/api/config/home/featured-player")
+    @PreAuthorize("hasAuthority('FUNC_HOME_FEATURED_PLAYER_CONFIG')")
+    public HomeFeaturedPlayerConfigResponse updateHomeFeaturedPlayerConfig(@RequestBody UpdateHomeFeaturedPlayerConfigRequest request) {
+        return appConfigService.updateHomeFeaturedPlayerConfig(request);
     }
 }

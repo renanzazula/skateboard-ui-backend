@@ -2,12 +2,15 @@ package com.skateboard.uibackend.client.appconfig;
 
 import com.skateboard.uibackend.client.appconfig.generated.api.AdminApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.HomeApi;
+import com.skateboard.uibackend.client.appconfig.generated.api.HomeFeaturedPlayerApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.PublicApi;
 import com.skateboard.uibackend.client.appconfig.generated.model.BrandingAssetResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.BrandingConfigResponse;
+import com.skateboard.uibackend.client.appconfig.generated.model.HomeFeaturedPlayerConfigResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeVideoCategoryConfigRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeVideoCategoryConfigResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.PublicConfigResponse;
+import com.skateboard.uibackend.client.appconfig.generated.model.UpdateHomeFeaturedPlayerConfigRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdateLoginTextRequest;
 import com.skateboard.uibackend.exception.DownstreamServiceException;
 import org.springframework.http.HttpStatus;
@@ -45,11 +48,13 @@ public class AppConfigClient {
     private final PublicApi publicApi;
     private final AdminApi adminApi;
     private final HomeApi homeApi;
+    private final HomeFeaturedPlayerApi homeFeaturedPlayerApi;
 
-    public AppConfigClient(PublicApi publicApi, AdminApi adminApi, HomeApi homeApi) {
+    public AppConfigClient(PublicApi publicApi, AdminApi adminApi, HomeApi homeApi, HomeFeaturedPlayerApi homeFeaturedPlayerApi) {
         this.publicApi = publicApi;
         this.adminApi = adminApi;
         this.homeApi = homeApi;
+        this.homeFeaturedPlayerApi = homeFeaturedPlayerApi;
     }
 
     public PublicConfigResponse getPublicConfig() {
@@ -62,6 +67,14 @@ public class AppConfigClient {
 
     public HomeVideoCategoryConfigResponse updateHomeVideoCategoryConfig(HomeVideoCategoryConfigRequest request) {
         return call(() -> homeApi.updateHomeVideoCategoryConfig(request), AppConfigClient::homeMessageFor);
+    }
+
+    public HomeFeaturedPlayerConfigResponse getHomeFeaturedPlayerConfig() {
+        return call(homeFeaturedPlayerApi::getHomeFeaturedPlayerConfig);
+    }
+
+    public HomeFeaturedPlayerConfigResponse updateHomeFeaturedPlayerConfig(UpdateHomeFeaturedPlayerConfigRequest request) {
+        return call(() -> homeFeaturedPlayerApi.updateHomeFeaturedPlayerConfig(request), AppConfigClient::featuredPlayerMessageFor);
     }
 
     public BrandingConfigResponse getBrandingConfig() {
@@ -193,6 +206,16 @@ public class AppConfigClient {
     private static String homeMessageFor(HttpStatusCode status) {
         if (status.equals(HttpStatus.BAD_REQUEST)) {
             return "Select at least one category, or choose \"All categories\".";
+        }
+        return messageFor(status);
+    }
+
+    // Featured Player config's only reachable error status is 400 (enabled
+    // without a selected content source/id) — everything else falls back to
+    // messageFor's generic text, mirroring homeMessageFor.
+    private static String featuredPlayerMessageFor(HttpStatusCode status) {
+        if (status.equals(HttpStatus.BAD_REQUEST)) {
+            return "Select a source and content, or turn the Featured Player off.";
         }
         return messageFor(status);
     }

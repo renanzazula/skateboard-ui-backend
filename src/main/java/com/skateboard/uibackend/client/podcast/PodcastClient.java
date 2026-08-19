@@ -45,12 +45,16 @@ public class PodcastClient {
         this.podcastApi = podcastApi;
     }
 
-    public FeedPageResponse getFeed(Integer page, Integer size) {
-        return call(() -> podcastApi.getPodcastFeed(page, size));
+    public FeedPageResponse getFeed(Integer page, Integer size, String search) {
+        return call(() -> podcastApi.getPodcastFeed(page, size, search));
     }
 
     public PostResponse getBySlug(String slug) {
         return call(() -> podcastApi.getPodcastPostBySlug(slug));
+    }
+
+    public PostResponse getById(UUID id) {
+        return call(() -> podcastApi.getPodcastPostById(id));
     }
 
     public PostResponse create(CreatePostRequest request) {

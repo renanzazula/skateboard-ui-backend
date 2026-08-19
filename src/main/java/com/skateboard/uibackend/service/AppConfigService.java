@@ -3,9 +3,11 @@ package com.skateboard.uibackend.service;
 import com.skateboard.uibackend.client.appconfig.AppConfigClient;
 import com.skateboard.uibackend.client.appconfig.generated.model.BrandingAssetResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.BrandingConfigResponse;
+import com.skateboard.uibackend.client.appconfig.generated.model.HomeFeaturedPlayerConfigResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeVideoCategoryConfigRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeVideoCategoryConfigResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.PublicConfigResponse;
+import com.skateboard.uibackend.client.appconfig.generated.model.UpdateHomeFeaturedPlayerConfigRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdateLoginTextRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -77,5 +79,13 @@ public class AppConfigService {
 
     public HomeVideoCategoryConfigResponse updateHomeVideoCategoryConfig(HomeVideoCategoryConfigRequest request) {
         return appConfigClient.updateHomeVideoCategoryConfig(request);
+    }
+
+    public HomeFeaturedPlayerConfigResponse getHomeFeaturedPlayerConfig() {
+        return appConfigClient.getHomeFeaturedPlayerConfig();
+    }
+
+    public HomeFeaturedPlayerConfigResponse updateHomeFeaturedPlayerConfig(UpdateHomeFeaturedPlayerConfigRequest request) {
+        return appConfigClient.updateHomeFeaturedPlayerConfig(request);
     }
 }

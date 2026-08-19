@@ -46,7 +46,7 @@ class HomeServiceTest {
 
         PostResponse published = post("Published Video", PostResponse.StatusEnum.PUBLISHED);
         PostResponse draft = post("Draft Video", PostResponse.StatusEnum.DRAFT);
-        when(podcastClient.getFeed(eq(0), anyInt()))
+        when(podcastClient.getFeed(eq(0), anyInt(), any()))
                 .thenReturn(new FeedPageResponse().posts(List.of(published, draft)).page(0).size(50).total(2L));
 
         List<HomeVideoResponse> videos = service.getVideos();
@@ -63,9 +63,9 @@ class HomeServiceTest {
 
         PostResponse first = post("First", PostResponse.StatusEnum.PUBLISHED);
         PostResponse second = post("Second", PostResponse.StatusEnum.PUBLISHED);
-        when(podcastClient.getFeed(eq(0), anyInt()))
+        when(podcastClient.getFeed(eq(0), anyInt(), any()))
                 .thenReturn(new FeedPageResponse().posts(List.of(first)).page(0).size(1).total(2L));
-        when(podcastClient.getFeed(eq(1), anyInt()))
+        when(podcastClient.getFeed(eq(1), anyInt(), any()))
                 .thenReturn(new FeedPageResponse().posts(List.of(second)).page(1).size(1).total(2L));
 
         List<HomeVideoResponse> videos = service.getVideos();
@@ -114,7 +114,7 @@ class HomeServiceTest {
                 .thenThrow(new DownstreamServiceException(HttpStatus.SERVICE_UNAVAILABLE, "APP_CONFIG_SERVICE_UNAVAILABLE", "down"));
 
         PostResponse published = post("Fallback Video", PostResponse.StatusEnum.PUBLISHED);
-        when(podcastClient.getFeed(eq(0), anyInt()))
+        when(podcastClient.getFeed(eq(0), anyInt(), any()))
                 .thenReturn(new FeedPageResponse().posts(List.of(published)).page(0).size(50).total(1L));
 
         List<HomeVideoResponse> videos = service.getVideos();
@@ -131,7 +131,7 @@ class HomeServiceTest {
         // Videos whose dimensions were never captured stay null so the client
         // knows to fall back to probing rather than assuming a ratio.
         PostResponse unsized = post("Unsized", PostResponse.StatusEnum.PUBLISHED);
-        when(podcastClient.getFeed(eq(0), anyInt()))
+        when(podcastClient.getFeed(eq(0), anyInt(), any()))
                 .thenReturn(new FeedPageResponse().posts(List.of(sized, unsized)).page(0).size(50).total(2L));
 
         List<HomeVideoResponse> videos = service.getVideos();

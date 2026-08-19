@@ -2,6 +2,7 @@ package com.skateboard.uibackend.config;
 
 import com.skateboard.uibackend.client.appconfig.generated.api.AdminApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.HomeApi;
+import com.skateboard.uibackend.client.appconfig.generated.api.HomeFeaturedPlayerApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.PublicApi;
 import com.skateboard.uibackend.client.appconfig.generated.invoker.ApiClient;
 import com.skateboard.uibackend.web.BearerTokenExchangeFilter;
@@ -62,5 +63,10 @@ public class AppConfigApiConfig {
     @Bean
     public HomeApi homeVideoCategoryConfigApi(ApiClient appConfigApiClient) {
         return new HomeApi(appConfigApiClient);
+    }
+
+    @Bean
+    public HomeFeaturedPlayerApi homeFeaturedPlayerApi(ApiClient appConfigApiClient) {
+        return new HomeFeaturedPlayerApi(appConfigApiClient);
     }
 }

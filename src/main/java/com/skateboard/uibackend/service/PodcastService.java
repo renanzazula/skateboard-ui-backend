@@ -31,8 +31,8 @@ public class PodcastService {
         this.podcastClient = podcastClient;
     }
 
-    public FeedPageResponse getFeed(Integer page, Integer size) {
-        return podcastClient.getFeed(page, size);
+    public FeedPageResponse getFeed(Integer page, Integer size, String search) {
+        return podcastClient.getFeed(page, size, search);
     }
 
     public PostResponse getBySlug(String slug) {

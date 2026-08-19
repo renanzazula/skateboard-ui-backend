@@ -54,7 +54,7 @@ class PodcastControllerSecurityTest {
 
     @Test
     void allowsATokenWithTheRequiredAuthority() throws Exception {
-        given(podcastService.getFeed(any(), any())).willReturn(new FeedPageResponse().page(0).size(10).total(0L));
+        given(podcastService.getFeed(any(), any(), any())).willReturn(new FeedPageResponse().page(0).size(10).total(0L));
 
         mockMvc.perform(get("/api/podcast").with(jwt().authorities(() -> "FUNC_TAB_PODCAST")))
                 .andExpect(status().isOk())

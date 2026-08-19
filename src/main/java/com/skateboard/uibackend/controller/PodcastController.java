@@ -49,8 +49,9 @@ public class PodcastController {
     @GetMapping("/api/podcast")
     @PreAuthorize("hasAuthority('FUNC_TAB_PODCAST')")
     public FeedPageResponse getFeed(@RequestParam(defaultValue = "0") Integer page,
-                                     @RequestParam(defaultValue = "10") Integer size) {
-        return podcastService.getFeed(page, size);
+                                     @RequestParam(defaultValue = "10") Integer size,
+                                     @RequestParam(required = false) String search) {
+        return podcastService.getFeed(page, size, search);
     }
 
     @GetMapping("/api/podcast/{slug}")

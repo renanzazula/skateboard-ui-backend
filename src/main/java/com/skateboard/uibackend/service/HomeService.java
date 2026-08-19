@@ -76,7 +76,7 @@ public class HomeService {
         int page = 0;
         FeedPageResponse feed;
         do {
-            feed = podcastClient.getFeed(page, PAGE_SIZE);
+            feed = podcastClient.getFeed(page, PAGE_SIZE, null);
             addPublished(feed.getPosts(), null, videosById);
             page++;
         } while (!isLastPage(feed));

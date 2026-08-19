@@ -1,7 +1,9 @@
 package com.skateboard.uibackend.controller;
 
 import com.skateboard.uibackend.config.SecurityConfig;
+import com.skateboard.uibackend.dto.HomeFeaturedPlayerResponse;
 import com.skateboard.uibackend.dto.HomeVideoResponse;
+import com.skateboard.uibackend.service.HomeFeaturedPlayerService;
 import com.skateboard.uibackend.service.HomeService;
 import com.skateboard.uibackend.web.RestAuthenticationEntryPoint;
 import org.junit.jupiter.api.Test;
@@ -35,6 +37,9 @@ class HomeControllerSecurityTest {
     @MockBean
     private HomeService homeService;
 
+    @MockBean
+    private HomeFeaturedPlayerService homeFeaturedPlayerService;
+
     @Test
     void rejectsRequestsWithoutAToken() throws Exception {
         mockMvc.perform(get("/api/home/videos"))
@@ -57,5 +62,38 @@ class HomeControllerSecurityTest {
         mockMvc.perform(get("/api/home/videos").with(jwt().authorities(() -> "FUNC_TAB_HOME")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].title").value("Title"));
+    }
+
+    @Test
+    void rejectsFeaturedPlayerRequestsWithoutAToken() throws Exception {
+        mockMvc.perform(get("/api/home/featured-player"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
+    }
+
+    @Test
+    void rejectsFeaturedPlayerTokenMissingTheRequiredAuthority() throws Exception {
+        mockMvc.perform(get("/api/home/featured-player").with(jwt().authorities(() -> "FUNC_SOME_OTHER_PERMISSION")))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"));
+    }
+
+    @Test
+    void returnsFeaturedPlayerContentWhenActive() throws Exception {
+        given(homeFeaturedPlayerService.getFeaturedPlayer()).willReturn(new HomeFeaturedPlayerResponse(
+                "post-1", "PODCAST", "Episode 1", "Skateboard Podcast", "cover.png", 120,
+                new HomeFeaturedPlayerResponse.Playback("SPOTIFY_EMBED", "https://open.spotify.com/episode/abc"), "BOTTOM"));
+
+        mockMvc.perform(get("/api/home/featured-player").with(jwt().authorities(() -> "FUNC_TAB_HOME")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("Episode 1"));
+    }
+
+    @Test
+    void returnsNoContentWhenNoFeaturedPlayerIsActive() throws Exception {
+        given(homeFeaturedPlayerService.getFeaturedPlayer()).willReturn(null);
+
+        mockMvc.perform(get("/api/home/featured-player").with(jwt().authorities(() -> "FUNC_TAB_HOME")))
+                .andExpect(status().isNoContent());
     }
 }

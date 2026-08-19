@@ -1,6 +1,7 @@
 package com.skateboard.uibackend.controller;
 
 import com.skateboard.uibackend.client.appconfig.generated.model.BrandingConfigResponse;
+import com.skateboard.uibackend.client.appconfig.generated.model.HomeFeaturedPlayerConfigResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeVideoCategoryConfigMode;
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeVideoCategoryConfigResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.PublicConfigResponse;
@@ -119,5 +120,54 @@ class AppConfigControllerSecurityTest {
                         .content("{\"mode\":\"ALL\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.mode").value("ALL"));
+    }
+
+    // ── Home Featured Player admin endpoints (FUNC_HOME_FEATURED_PLAYER_CONFIG) ──
+
+    @Test
+    void rejectsHomeFeaturedPlayerConfigWithoutAToken() throws Exception {
+        mockMvc.perform(get("/api/config/home/featured-player"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
+    }
+
+    @Test
+    void rejectsHomeFeaturedPlayerConfigWithoutTheRequiredAuthority() throws Exception {
+        mockMvc.perform(get("/api/config/home/featured-player").with(jwt().authorities(() -> "FUNC_TAB_HOME")))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"));
+    }
+
+    @Test
+    void allowsReadingHomeFeaturedPlayerConfigWithTheRequiredAuthority() throws Exception {
+        given(appConfigService.getHomeFeaturedPlayerConfig())
+                .willReturn(new HomeFeaturedPlayerConfigResponse().enabled(false));
+
+        mockMvc.perform(get("/api/config/home/featured-player").with(jwt().authorities(() -> "FUNC_HOME_FEATURED_PLAYER_CONFIG")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.enabled").value(false));
+    }
+
+    @Test
+    void rejectsUpdatingHomeFeaturedPlayerConfigWithoutTheRequiredAuthority() throws Exception {
+        mockMvc.perform(put("/api/config/home/featured-player")
+                        .with(jwt().authorities(() -> "FUNC_TAB_HOME"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"enabled\":false,\"playerType\":\"MINI\",\"position\":\"BOTTOM\"}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"));
+    }
+
+    @Test
+    void allowsUpdatingHomeFeaturedPlayerConfigWithTheRequiredAuthority() throws Exception {
+        given(appConfigService.updateHomeFeaturedPlayerConfig(any()))
+                .willReturn(new HomeFeaturedPlayerConfigResponse().enabled(false));
+
+        mockMvc.perform(put("/api/config/home/featured-player")
+                        .with(jwt().authorities(() -> "FUNC_HOME_FEATURED_PLAYER_CONFIG"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"enabled\":false,\"playerType\":\"MINI\",\"position\":\"BOTTOM\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.enabled").value(false));
     }
 }
