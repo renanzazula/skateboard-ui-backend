@@ -47,7 +47,8 @@ public class HomeFeaturedPlayerService {
             log.warn("No FeaturedContentResolver registered for source={}", config.getContentSource());
             return null;
         }
-        HomeFeaturedPlayerResponse resolved = resolver.resolve(config.getContentId());
+        String preferredPlatform = config.getPreferredPlatform() != null ? config.getPreferredPlatform().getValue() : null;
+        HomeFeaturedPlayerResponse resolved = resolver.resolve(config.getContentId(), preferredPlatform);
         if (resolved == null) {
             return null;
         }

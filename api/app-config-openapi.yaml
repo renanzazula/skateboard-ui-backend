@@ -711,6 +711,16 @@ components:
       type: string
       enum: [TOP, BOTTOM]
 
+    PreferredPlaybackPlatform:
+      type: string
+      description: >-
+        Which distribution platform to prefer when the featured content has
+        more than one available (e.g. a podcast episode with both a Spotify
+        and a YouTube link). Null/omitted means the resolver decides (today:
+        prefer Spotify, fall back to YouTube). Still falls back to whichever
+        platform is actually available if the preferred one isn't.
+      enum: [SPOTIFY, YOUTUBE]
+
     HomeFeaturedPlayerConfigResponse:
       type: object
       properties:
@@ -727,6 +737,10 @@ components:
           $ref: '#/components/schemas/HomePlayerType'
         position:
           $ref: '#/components/schemas/HomePlayerPosition'
+        preferredPlatform:
+          allOf:
+            - $ref: '#/components/schemas/PreferredPlaybackPlatform'
+          nullable: true
         updatedAt:
           type: string
           format: date-time
@@ -749,3 +763,7 @@ components:
           $ref: '#/components/schemas/HomePlayerType'
         position:
           $ref: '#/components/schemas/HomePlayerPosition'
+        preferredPlatform:
+          allOf:
+            - $ref: '#/components/schemas/PreferredPlaybackPlatform'
+          nullable: true

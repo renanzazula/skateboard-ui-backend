@@ -60,7 +60,7 @@ class HomeFeaturedPlayerServiceTest {
         when(resolver.supports(FeaturedContentSource.PODCAST)).thenReturn(true);
         HomeFeaturedPlayerResponse resolved = new HomeFeaturedPlayerResponse("post-1", "PODCAST", "Ep 1", "Skateboard Podcast",
                 "cover.png", 100, new HomeFeaturedPlayerResponse.Playback("SPOTIFY_EMBED", "https://open.spotify.com/episode/abc"), null);
-        when(resolver.resolve("post-1")).thenReturn(resolved);
+        when(resolver.resolve("post-1", null)).thenReturn(resolved);
 
         HomeFeaturedPlayerResponse result = service.getFeaturedPlayer();
 

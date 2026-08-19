@@ -20,6 +20,16 @@ public interface FeaturedContentResolver {
      * exists/isn't published/has no resolvable playback — callers must treat
      * that the same as "no Featured Player configured" (README-home-featured-mini-player.md §14),
      * not as an error.
+     *
+     * @param preferredPlatform the admin-configured platform to prefer when
+     *                          the content has more than one available (raw
+     *                          enum value, e.g. "SPOTIFY"/"YOUTUBE"), or
+     *                          {@code null} to let the resolver pick its own
+     *                          default. Still falls back to whichever
+     *                          platform is actually available if the
+     *                          preferred one isn't — implementations should
+     *                          never fail just because the exact preference
+     *                          can't be honored.
      */
-    HomeFeaturedPlayerResponse resolve(String contentId);
+    HomeFeaturedPlayerResponse resolve(String contentId, String preferredPlatform);
 }

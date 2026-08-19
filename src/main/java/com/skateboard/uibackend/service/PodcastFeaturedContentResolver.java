@@ -38,7 +38,7 @@ public class PodcastFeaturedContentResolver implements FeaturedContentResolver {
     }
 
     @Override
-    public HomeFeaturedPlayerResponse resolve(String contentId) {
+    public HomeFeaturedPlayerResponse resolve(String contentId, String preferredPlatform) {
         PostResponse post = loadPost(contentId);
         if (post == null) {
             return null;
@@ -47,7 +47,7 @@ public class PodcastFeaturedContentResolver implements FeaturedContentResolver {
             log.warn("Home Featured Player references unpublished/removed post id={}", contentId);
             return null;
         }
-        HomeFeaturedPlayerResponse.Playback playback = resolvePlayback(post);
+        HomeFeaturedPlayerResponse.Playback playback = resolvePlayback(post, preferredPlatform);
         if (playback == null) {
             log.warn("Home Featured Player references post id={} with no resolvable playback", contentId);
             return null;
@@ -81,20 +81,39 @@ public class PodcastFeaturedContentResolver implements FeaturedContentResolver {
         }
     }
 
-    private HomeFeaturedPlayerResponse.Playback resolvePlayback(PostResponse post) {
-        List<PostPlatformResponse> platforms = post.getPlatforms();
-        PostPlatformResponse spotify = findPlatform(platforms, PostPlatformResponse.PlatformEnum.SPOTIFY);
-        if (spotify != null && spotify.getExternalUrl() != null) {
-            return new HomeFeaturedPlayerResponse.Playback("SPOTIFY_EMBED", spotify.getExternalUrl());
+    // Default order is Spotify-first (this feature's "Spotify-style mini
+    // player" framing). An explicit admin preference overrides that order,
+    // but only when the preferred platform is actually available on this
+    // post — an unmatched preference falls back to the default order rather
+    // than hiding the player.
+    private HomeFeaturedPlayerResponse.Playback resolvePlayback(PostResponse post, String preferredPlatform) {
+        HomeFeaturedPlayerResponse.Playback spotify = spotifyPlayback(post);
+        HomeFeaturedPlayerResponse.Playback youtube = youtubePlayback(post);
+
+        if ("YOUTUBE".equals(preferredPlatform) && youtube != null) {
+            return youtube;
         }
-        PostPlatformResponse youtube = findPlatform(platforms, PostPlatformResponse.PlatformEnum.YOUTUBE);
+        if ("SPOTIFY".equals(preferredPlatform) && spotify != null) {
+            return spotify;
+        }
+        return spotify != null ? spotify : youtube;
+    }
+
+    private HomeFeaturedPlayerResponse.Playback spotifyPlayback(PostResponse post) {
+        PostPlatformResponse spotify = findPlatform(post.getPlatforms(), PostPlatformResponse.PlatformEnum.SPOTIFY);
+        return spotify != null && spotify.getExternalUrl() != null
+                ? new HomeFeaturedPlayerResponse.Playback("SPOTIFY_EMBED", spotify.getExternalUrl())
+                : null;
+    }
+
+    // Falls back to the post's legacy youtubeUrl field (posts ingested
+    // before platform links existed) when there's no YOUTUBE platform link.
+    private HomeFeaturedPlayerResponse.Playback youtubePlayback(PostResponse post) {
+        PostPlatformResponse youtube = findPlatform(post.getPlatforms(), PostPlatformResponse.PlatformEnum.YOUTUBE);
         if (youtube != null && youtube.getExternalUrl() != null) {
             return new HomeFeaturedPlayerResponse.Playback("YOUTUBE", youtube.getExternalUrl());
         }
-        if (post.getYoutubeUrl() != null) {
-            return new HomeFeaturedPlayerResponse.Playback("YOUTUBE", post.getYoutubeUrl());
-        }
-        return null;
+        return post.getYoutubeUrl() != null ? new HomeFeaturedPlayerResponse.Playback("YOUTUBE", post.getYoutubeUrl()) : null;
     }
 
     private PostPlatformResponse findPlatform(List<PostPlatformResponse> platforms, PostPlatformResponse.PlatformEnum platform) {

@@ -47,7 +47,7 @@ class PodcastFeaturedContentResolverTest {
                         new PostPlatformResponse().platform(PostPlatformResponse.PlatformEnum.SPOTIFY).externalUrl("https://open.spotify.com/episode/abc")));
         when(podcastClient.getById(id)).thenReturn(post);
 
-        HomeFeaturedPlayerResponse result = resolver.resolve(id.toString());
+        HomeFeaturedPlayerResponse result = resolver.resolve(id.toString(), null);
 
         assertThat(result.playback().type()).isEqualTo("SPOTIFY_EMBED");
         assertThat(result.playback().reference()).isEqualTo("https://open.spotify.com/episode/abc");
@@ -62,7 +62,7 @@ class PodcastFeaturedContentResolverTest {
                         .externalUrl("https://youtube.com/watch?v=x")));
         when(podcastClient.getById(id)).thenReturn(post);
 
-        HomeFeaturedPlayerResponse result = resolver.resolve(id.toString());
+        HomeFeaturedPlayerResponse result = resolver.resolve(id.toString(), null);
 
         assertThat(result.playback().type()).isEqualTo("YOUTUBE");
         assertThat(result.playback().reference()).isEqualTo("https://youtube.com/watch?v=x");
@@ -74,7 +74,7 @@ class PodcastFeaturedContentResolverTest {
         PostResponse post = new PostResponse().id(id).title("Draft").status(PostResponse.StatusEnum.DRAFT);
         when(podcastClient.getById(id)).thenReturn(post);
 
-        assertThat(resolver.resolve(id.toString())).isNull();
+        assertThat(resolver.resolve(id.toString(), null)).isNull();
     }
 
     @Test
@@ -83,7 +83,7 @@ class PodcastFeaturedContentResolverTest {
         PostResponse post = new PostResponse().id(id).title("No playback").status(PostResponse.StatusEnum.PUBLISHED);
         when(podcastClient.getById(id)).thenReturn(post);
 
-        assertThat(resolver.resolve(id.toString())).isNull();
+        assertThat(resolver.resolve(id.toString(), null)).isNull();
     }
 
     @Test
@@ -92,11 +92,43 @@ class PodcastFeaturedContentResolverTest {
         when(podcastClient.getById(id)).thenThrow(
                 new DownstreamServiceException(HttpStatus.NOT_FOUND, "PODCAST_NOT_FOUND", "Post not found"));
 
-        assertThat(resolver.resolve(id.toString())).isNull();
+        assertThat(resolver.resolve(id.toString(), null)).isNull();
     }
 
     @Test
     void returnsNullWhenContentIdIsNotAValidUuid() {
-        assertThat(resolver.resolve("not-a-uuid")).isNull();
+        assertThat(resolver.resolve("not-a-uuid", null)).isNull();
+    }
+
+    @Test
+    void preferredPlatformOverridesTheDefaultSpotifyPreference() {
+        UUID id = UUID.randomUUID();
+        PostResponse post = new PostResponse()
+                .id(id).title("Episode 1").status(PostResponse.StatusEnum.PUBLISHED)
+                .platforms(List.of(
+                        new PostPlatformResponse().platform(PostPlatformResponse.PlatformEnum.YOUTUBE).externalUrl("https://youtube.com/watch?v=x"),
+                        new PostPlatformResponse().platform(PostPlatformResponse.PlatformEnum.SPOTIFY).externalUrl("https://open.spotify.com/episode/abc")));
+        when(podcastClient.getById(id)).thenReturn(post);
+
+        HomeFeaturedPlayerResponse result = resolver.resolve(id.toString(), "YOUTUBE");
+
+        assertThat(result.playback().type()).isEqualTo("YOUTUBE");
+        assertThat(result.playback().reference()).isEqualTo("https://youtube.com/watch?v=x");
+    }
+
+    @Test
+    void unavailablePreferredPlatformFallsBackToWhicheverIsAvailable() {
+        UUID id = UUID.randomUUID();
+        PostResponse post = new PostResponse()
+                .id(id).title("Episode 1").status(PostResponse.StatusEnum.PUBLISHED)
+                .platforms(List.of(new PostPlatformResponse().platform(PostPlatformResponse.PlatformEnum.SPOTIFY)
+                        .externalUrl("https://open.spotify.com/episode/abc")));
+        when(podcastClient.getById(id)).thenReturn(post);
+
+        // Preference asks for YOUTUBE, but this episode only has Spotify —
+        // must still resolve rather than returning null.
+        HomeFeaturedPlayerResponse result = resolver.resolve(id.toString(), "YOUTUBE");
+
+        assertThat(result.playback().type()).isEqualTo("SPOTIFY_EMBED");
     }
 }
