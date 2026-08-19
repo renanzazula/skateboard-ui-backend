@@ -1571,6 +1571,21 @@ components:
         episodeNumber:
           type: integer
           nullable: true
+        platforms:
+          type: array
+          description: Distribution-platform links for this episode (YouTube, Spotify, ...). May be empty for manually-authored posts.
+          items:
+            $ref: '#/components/schemas/PostPlatformResponse'
+
+    PostPlatformResponse:
+      type: object
+      properties:
+        platform:
+          type: string
+          enum: [YOUTUBE, SPOTIFY]
+        externalUrl:
+          type: string
+          nullable: true
 
     FeedPageResponse:
       type: object
