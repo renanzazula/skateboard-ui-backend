@@ -1,12 +1,15 @@
 package com.skateboard.uibackend.service;
 
 import com.skateboard.uibackend.client.appconfig.AppConfigClient;
+import com.skateboard.uibackend.client.appconfig.generated.model.AboutImageResponse;
+import com.skateboard.uibackend.client.appconfig.generated.model.AboutPageResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.BrandingAssetResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.BrandingConfigResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeFeaturedPlayerConfigResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeVideoCategoryConfigRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeVideoCategoryConfigResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.PublicConfigResponse;
+import com.skateboard.uibackend.client.appconfig.generated.model.UpdateAboutPageRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdateHomeFeaturedPlayerConfigRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdateLoginTextRequest;
 import org.springframework.stereotype.Service;
@@ -87,5 +90,23 @@ public class AppConfigService {
 
     public HomeFeaturedPlayerConfigResponse updateHomeFeaturedPlayerConfig(UpdateHomeFeaturedPlayerConfigRequest request) {
         return appConfigClient.updateHomeFeaturedPlayerConfig(request);
+    }
+
+    /** Null when app-config-be answered 204 (no published page yet). */
+    public AboutPageResponse getAboutUs() {
+        return appConfigClient.getAboutUs();
+    }
+
+    /** Null when app-config-be answered 204 (no page created yet). */
+    public AboutPageResponse getAboutUsAdmin() {
+        return appConfigClient.getAboutUsAdmin();
+    }
+
+    public AboutPageResponse updateAboutUs(UpdateAboutPageRequest request) {
+        return appConfigClient.updateAboutUs(request);
+    }
+
+    public AboutImageResponse uploadAboutUsImage(MultipartFile file) {
+        return appConfigClient.uploadAboutUsImage(file);
     }
 }

@@ -1,5 +1,6 @@
 package com.skateboard.uibackend.config;
 
+import com.skateboard.uibackend.client.appconfig.generated.api.AboutUsApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.AdminApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.HomeApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.HomeFeaturedPlayerApi;
@@ -68,5 +69,10 @@ public class AppConfigApiConfig {
     @Bean
     public HomeFeaturedPlayerApi homeFeaturedPlayerApi(ApiClient appConfigApiClient) {
         return new HomeFeaturedPlayerApi(appConfigApiClient);
+    }
+
+    @Bean
+    public AboutUsApi aboutUsApi(ApiClient appConfigApiClient) {
+        return new AboutUsApi(appConfigApiClient);
     }
 }

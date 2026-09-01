@@ -1,15 +1,19 @@
 package com.skateboard.uibackend.client.appconfig;
 
+import com.skateboard.uibackend.client.appconfig.generated.api.AboutUsApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.AdminApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.HomeApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.HomeFeaturedPlayerApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.PublicApi;
+import com.skateboard.uibackend.client.appconfig.generated.model.AboutImageResponse;
+import com.skateboard.uibackend.client.appconfig.generated.model.AboutPageResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.BrandingAssetResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.BrandingConfigResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeFeaturedPlayerConfigResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeVideoCategoryConfigRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeVideoCategoryConfigResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.PublicConfigResponse;
+import com.skateboard.uibackend.client.appconfig.generated.model.UpdateAboutPageRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdateHomeFeaturedPlayerConfigRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdateLoginTextRequest;
 import com.skateboard.uibackend.exception.DownstreamServiceException;
@@ -49,12 +53,15 @@ public class AppConfigClient {
     private final AdminApi adminApi;
     private final HomeApi homeApi;
     private final HomeFeaturedPlayerApi homeFeaturedPlayerApi;
+    private final AboutUsApi aboutUsApi;
 
-    public AppConfigClient(PublicApi publicApi, AdminApi adminApi, HomeApi homeApi, HomeFeaturedPlayerApi homeFeaturedPlayerApi) {
+    public AppConfigClient(PublicApi publicApi, AdminApi adminApi, HomeApi homeApi,
+                           HomeFeaturedPlayerApi homeFeaturedPlayerApi, AboutUsApi aboutUsApi) {
         this.publicApi = publicApi;
         this.adminApi = adminApi;
         this.homeApi = homeApi;
         this.homeFeaturedPlayerApi = homeFeaturedPlayerApi;
+        this.aboutUsApi = aboutUsApi;
     }
 
     public PublicConfigResponse getPublicConfig() {
@@ -137,6 +144,32 @@ public class AppConfigClient {
         call(() -> adminApi.removeBrandingAsset(assetId));
     }
 
+    // ── About Us ──────────────────────────────────────────────────────────
+    // getAboutUs / getAboutUsAdmin return null on a downstream 204 (empty
+    // Mono): the app-config service answers 204 when there is nothing to show,
+    // and AboutUsController turns that null back into a 204 for the frontend.
+
+    public AboutPageResponse getAboutUs() {
+        return call(aboutUsApi::getAboutUs);
+    }
+
+    public AboutPageResponse getAboutUsAdmin() {
+        return call(aboutUsApi::getAboutUsAdmin);
+    }
+
+    public AboutPageResponse updateAboutUs(UpdateAboutPageRequest request) {
+        return call(() -> aboutUsApi.updateAboutUs(request), AppConfigClient::aboutUsMessageFor);
+    }
+
+    public AboutImageResponse uploadAboutUsImage(MultipartFile file) {
+        Path tempFile = toTempFile(file, "about-us-image-");
+        try {
+            return call(() -> aboutUsApi.uploadAboutUsImage(tempFile.toFile()), AppConfigClient::aboutUsMessageFor);
+        } finally {
+            deleteQuietly(tempFile);
+        }
+    }
+
     private <T> T call(Supplier<Mono<T>> invocation) {
         return call(invocation, AppConfigClient::messageFor);
     }
@@ -216,6 +249,15 @@ public class AppConfigClient {
     private static String featuredPlayerMessageFor(HttpStatusCode status) {
         if (status.equals(HttpStatus.BAD_REQUEST)) {
             return "Select a source and content, or turn the Featured Player off.";
+        }
+        return messageFor(status);
+    }
+
+    // About Us save/image-upload reject with 400 on a blank title or an
+    // unsupported/oversized image — everything else falls back to messageFor.
+    private static String aboutUsMessageFor(HttpStatusCode status) {
+        if (status.equals(HttpStatus.BAD_REQUEST)) {
+            return "The About Us page could not be saved — check the title and section content.";
         }
         return messageFor(status);
     }

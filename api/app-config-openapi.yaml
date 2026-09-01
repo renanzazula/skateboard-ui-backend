@@ -4,14 +4,6 @@
 # when skateboard-app-config-be's spec changes, re-copy it here by hand (and
 # update AppConfigController's @PreAuthorize authorities, which mirror this
 # file's x-required-permissions).
-#
-# pom.xml's openapi-generator-maven-plugin generates PublicApi/AdminApi/HomeApi
-# (WebClient clients, one per tag) and their request/response DTOs from this
-# file at build time, into com.skateboard.uibackend.client.appconfig.generated.*.
-#
-# This is an *inbound* codegen input only (the downstream contract we call
-# out to) — it is not what AppConfigController itself exposes to the
-# frontend. For that, see api/bff-openapi.yaml.
 
 openapi: "3.0.3"
 info:
@@ -37,6 +29,16 @@ tags:
       updating it requires FUNC_HOME_FEATURED_PLAYER_CONFIG. This service
       persists only a contentSource + contentId reference — the referenced
       content itself is owned by the source service (e.g. skateboard-podcast-be).
+  - name: about-us
+    description: >-
+      The About Us page — an admin-configurable, application-wide content page
+      (story, mission, community, social links). Reading the published page
+      only requires authentication (any authenticated user); reading the draft,
+      saving, and uploading images require FUNC_ABOUT_US_MANAGE. The page is a
+      singleton (one draft, one published version) composed of an ordered array
+      of typed content blocks — stored opaquely, the same way skateboard-podcast-be
+      stores a post's blocks. Block image references are stored as bare object
+      keys and re-signed on every read.
 
 paths:
 
@@ -557,6 +559,154 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/about-us:
+    get:
+      tags: [about-us]
+      operationId: getAboutUs
+      summary: Get the published About Us page (any authenticated user)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The published About Us page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AboutPageResponse'
+        '204':
+          description: No About Us page has been published yet
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags: [about-us]
+      operationId: updateAboutUs
+      summary: Create or update the About Us page (admin only)
+      description: >-
+        Saves the single About Us page. status=published makes it visible on
+        GET /api/about-us; status=draft keeps it admin-only. Any block image
+        reference that is a signed URL for this service's bucket is normalized
+        back to its bare object key before persisting.
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_ABOUT_US_MANAGE
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAboutPageRequest'
+      responses:
+        '200':
+          description: About Us page saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AboutPageResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_ABOUT_US_MANAGE required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/about-us/admin:
+    get:
+      tags: [about-us]
+      operationId: getAboutUsAdmin
+      summary: Get the About Us page including unpublished draft content (admin only)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_ABOUT_US_MANAGE
+      responses:
+        '200':
+          description: The current About Us page (draft or published)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AboutPageResponse'
+        '204':
+          description: No About Us page has been created yet
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_ABOUT_US_MANAGE required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/about-us/images:
+    post:
+      tags: [about-us]
+      operationId: uploadAboutUsImage
+      summary: Upload an image for use in an About Us content block (admin only)
+      description: >-
+        Stores the image in object storage and returns a freshly signed URL so
+        the editor can preview it immediately. The block that references it
+        persists the bare object key (see PUT /api/about-us).
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_ABOUT_US_MANAGE
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Image stored; returns a signed URL to it
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AboutImageResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_ABOUT_US_MANAGE required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -666,6 +816,63 @@ components:
         timestamp:
           type: string
           format: date-time
+
+    AboutPageStatus:
+      type: string
+      enum: [draft, published]
+
+    AboutPageResponse:
+      type: object
+      required: [title, status]
+      properties:
+        title:
+          type: string
+        subtitle:
+          type: string
+          nullable: true
+        status:
+          $ref: '#/components/schemas/AboutPageStatus'
+        blocks:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+          description: >-
+            Ordered array of typed content blocks. Opaque to this service —
+            same treatment as a podcast post's blocks. Image references inside
+            a block are bare object keys on read; the frontend's
+            shared/types/content-blocks.ts carries the concrete union.
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedBy:
+          type: string
+          nullable: true
+
+    UpdateAboutPageRequest:
+      type: object
+      required: [title, status]
+      properties:
+        title:
+          type: string
+        subtitle:
+          type: string
+          nullable: true
+        status:
+          $ref: '#/components/schemas/AboutPageStatus'
+        blocks:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+
+    AboutImageResponse:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
 
     HomeVideoCategoryConfigMode:
       type: string
