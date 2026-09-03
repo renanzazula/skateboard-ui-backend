@@ -3,10 +3,8 @@ package com.skateboard.uibackend.service;
 import com.skateboard.uibackend.client.user.UserClient;
 import com.skateboard.uibackend.client.user.generated.model.ChangePasswordRequest;
 import com.skateboard.uibackend.client.user.generated.model.ChangeUsernameRequest;
-import com.skateboard.uibackend.client.user.generated.model.NotificationPreferencesResponse;
 import com.skateboard.uibackend.client.user.generated.model.ProblemReportRequest;
 import com.skateboard.uibackend.client.user.generated.model.ProblemReportResponse;
-import com.skateboard.uibackend.client.user.generated.model.UpdateNotificationPreferencesRequest;
 import com.skateboard.uibackend.client.user.generated.model.UpdateUserRequest;
 import com.skateboard.uibackend.client.user.generated.model.UserResponse;
 import org.springframework.stereotype.Service;
@@ -35,14 +33,6 @@ public class UserService {
 
     public void deleteCurrentUser() {
         userClient.deleteCurrentUser();
-    }
-
-    public NotificationPreferencesResponse getNotificationPreferences() {
-        return userClient.getNotificationPreferences();
-    }
-
-    public NotificationPreferencesResponse updateNotificationPreferences(UpdateNotificationPreferencesRequest request) {
-        return userClient.updateNotificationPreferences(request);
     }
 
     public UserResponse uploadProfilePicture(MultipartFile file) {

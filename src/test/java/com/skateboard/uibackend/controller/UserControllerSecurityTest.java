@@ -1,6 +1,5 @@
 package com.skateboard.uibackend.controller;
 
-import com.skateboard.uibackend.client.user.generated.model.NotificationPreferencesResponse;
 import com.skateboard.uibackend.client.user.generated.model.ProblemReportResponse;
 import com.skateboard.uibackend.client.user.generated.model.UserResponse;
 import com.skateboard.uibackend.config.SecurityConfig;
@@ -59,14 +58,6 @@ class UserControllerSecurityTest {
         given(userService.getCurrentUser()).willReturn(new UserResponse());
 
         mockMvc.perform(get("/api/me").with(jwt().authorities(() -> "FUNC_USER_SELF_READ")))
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    void selfReadAuthorityAllowsGetNotificationPreferences() throws Exception {
-        given(userService.getNotificationPreferences()).willReturn(new NotificationPreferencesResponse());
-
-        mockMvc.perform(get("/api/me/preferences").with(jwt().authorities(() -> "FUNC_USER_SELF_READ")))
                 .andExpect(status().isOk());
     }
 

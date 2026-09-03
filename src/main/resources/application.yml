@@ -44,6 +44,10 @@ clients:
     base-url: ${CLIENTS_APP_CONFIG_BASE_URL:http://localhost:8083}
     connect-timeout-ms: ${CLIENTS_APP_CONFIG_CONNECT_TIMEOUT_MS:3000}
     read-timeout-ms: ${CLIENTS_APP_CONFIG_READ_TIMEOUT_MS:5000}
+  notification:
+    base-url: ${CLIENTS_NOTIFICATION_BASE_URL:http://localhost:8084}
+    connect-timeout-ms: ${CLIENTS_NOTIFICATION_CONNECT_TIMEOUT_MS:3000}
+    read-timeout-ms: ${CLIENTS_NOTIFICATION_READ_TIMEOUT_MS:5000}
 
 app:
   cors:

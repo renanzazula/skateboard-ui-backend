@@ -3,10 +3,8 @@ package com.skateboard.uibackend.client.user;
 import com.skateboard.uibackend.client.user.generated.api.MeApi;
 import com.skateboard.uibackend.client.user.generated.model.ChangePasswordRequest;
 import com.skateboard.uibackend.client.user.generated.model.ChangeUsernameRequest;
-import com.skateboard.uibackend.client.user.generated.model.NotificationPreferencesResponse;
 import com.skateboard.uibackend.client.user.generated.model.ProblemReportRequest;
 import com.skateboard.uibackend.client.user.generated.model.ProblemReportResponse;
-import com.skateboard.uibackend.client.user.generated.model.UpdateNotificationPreferencesRequest;
 import com.skateboard.uibackend.client.user.generated.model.UpdateUserRequest;
 import com.skateboard.uibackend.client.user.generated.model.UserResponse;
 import com.skateboard.uibackend.exception.DownstreamServiceException;
@@ -56,14 +54,6 @@ public class UserClient {
 
     public void deleteCurrentUser() {
         call(meApi::deleteCurrentUser);
-    }
-
-    public NotificationPreferencesResponse getNotificationPreferences() {
-        return call(meApi::getNotificationPreferences);
-    }
-
-    public NotificationPreferencesResponse updateNotificationPreferences(UpdateNotificationPreferencesRequest request) {
-        return call(() -> meApi.updateNotificationPreferences(request));
     }
 
     public UserResponse uploadProfilePicture(MultipartFile file) {

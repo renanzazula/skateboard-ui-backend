@@ -6,7 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A thin Spring Boot Backend-for-Frontend (`ui-backend`, package `com.skateboard.uibackend`) sitting between the Skateboard frontend and internal microservices. It validates the frontend's Keycloak JWT, relays it downstream unmodified (token relay — this service has no Keycloak client of its own), and exposes a stable frontend-facing API. Full design rationale: `.docs/README-skateboard-ui-backend.md`.
 
-Only one downstream service exists yet: `../skateboard-podcast-be` (sibling repo). Events/spots services from the design doc don't exist, so there's no client, controller, or `/api/home` aggregation for them — don't add one speculatively; follow the `client/podcast/` pattern once a real service exists to call.
+Four downstream services exist: `../skateboard-podcast-be`, `../skateboard-user-be`, `../skateboard-app-config-be` and `../skateboard-notification-be`, each with its own vendored spec under `api/`, its own generator execution in `pom.xml`, and its own `client/<name>/` wrapper. Events/spots services from the design doc don't exist, so there's no client or controller for them — don't add one speculatively; follow the `client/podcast/` pattern once a real service exists to call.
+
+`/api/me/preferences` is served by `NotificationController` against `skateboard-notification-be`, not by `UserController` against `skateboard-user-be`, which owned notification preferences until that service existed. The route, the DTO shape and the `FUNC_USER_SELF_READ`/`FUNC_USER_SELF_UPDATE` authorities are all unchanged — only what stands behind them moved — which is why the mobile settings screen needed no change. `skateboard-user-be` still exposes its own copy; nothing calls it.
 
 ## Build & run
 
@@ -16,7 +18,7 @@ Only one downstream service exists yet: `../skateboard-podcast-be` (sibling repo
 
 ## Generated OpenAPI client
 
-`api/openapi.yaml` is a **vendored copy** of `skateboard-podcast-be/api/openapi.yaml` — this repo doesn't own that contract, and there's no shared contract registry between the two repos. When the upstream spec changes, re-copy it here by hand, and check whether `PodcastController`'s `@PreAuthorize` authorities still match its `x-required-permissions`.
+`api/openapi.yaml`, `api/user-openapi.yaml`, `api/app-config-openapi.yaml` and `api/notification-openapi.yaml` are **vendored copies** of the downstream services' specs — this repo owns none of those contracts, and there's no shared contract registry. When an upstream spec changes, re-copy it here by hand, and check whether the matching controller's `@PreAuthorize` authorities still match its `x-required-permissions`. `api/bff-openapi.yaml` is this service's *own* exposed contract, hand-synced, and is what the frontend generates its types from.
 
 `pom.xml`'s `openapi-generator-maven-plugin` generates a WebClient-based client (`generatorName=java`, `library=webclient`) from that spec into `com.skateboard.uibackend.client.podcast.generated.{api,model,invoker}` at build time — `PodcastApi`, `ApiClient`, and the request/response DTOs (`PostResponse`, `FeedPageResponse`, `CreatePostRequest`, etc.). These are regenerated on every build; don't hand-edit anything under `client/podcast/generated`.
 
@@ -45,6 +47,6 @@ PodcastApi (generated) -- WebClient --> skateboard-podcast-be
 
 ## Tests
 
-JUnit 5 (+ AssertJ, spring-security-test). Two classes:
-- `exception/GlobalExceptionHandlerTest` — plain unit test of the exception → `ErrorResponse` mapping (no Spring context).
-- `controller/PodcastControllerSecurityTest` — `@WebMvcTest` + `@Import(SecurityConfig.class)`, verifies the BFF's own auth gate (no token → 401, wrong authority → 403, correct authority → 200) with `PodcastService` mocked out. This does **not** test `skateboard-podcast-be`'s behavior — that's `PodcastClient`'s and, downstream, `skateboard-podcast-be`'s own test suite's job.
+JUnit 5 (+ AssertJ, spring-security-test), in two shapes:
+- Plain unit tests with no Spring context — `exception/GlobalExceptionHandlerTest` (exception → `ErrorResponse` mapping), and the `service/` tests, which use `@Mock` + `MockitoAnnotations.openMocks` and construct the service by hand.
+- `controller/*SecurityTest` — `@WebMvcTest` + `@Import({SecurityConfig.class, RestAuthenticationEntryPoint.class})`, verifying this BFF's own auth gate (no token → 401 `UNAUTHENTICATED`, wrong authority → 403 `FORBIDDEN`, correct authority → 2xx) with the service mocked out. These do **not** test downstream behaviour — that's each `client/`'s and, further down, each service's own suite's job.
