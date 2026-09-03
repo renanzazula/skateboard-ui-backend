@@ -34,6 +34,13 @@ tags:
       /api/config/home/featured-player manages the default configuration
       (FUNC_HOME_FEATURED_PLAYER_CONFIG); /api/home/featured-player is the
       resolved, UI-ready content for the Home screen (FUNC_TAB_HOME).
+  - name: notifications
+    description: >-
+      Push device registration and notification preferences, served by
+      skateboard-notification-be. /api/me/preferences kept its route, its
+      shape and its FUNC_USER_SELF_* authorities when that service took the
+      preferences over from skateboard-user-be, so this tag change is
+      documentation, not a contract change for the app.
   - name: about-us
     description: >-
       About Us page (.docs/ABOUT_US_README.md). GET /api/about-us returns the
@@ -602,7 +609,7 @@ paths:
 
   /api/me/preferences:
     get:
-      tags: [me]
+      tags: [notifications]
       operationId: getNotificationPreferences
       summary: Get the current user's notification preferences
       security:
@@ -623,7 +630,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
     patch:
-      tags: [me]
+      tags: [notifications]
       operationId: updateNotificationPreferences
       summary: Partially update the current user's notification preferences
       security:
@@ -651,6 +658,98 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '401':
           description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/me/devices/{deviceIdentifier}:
+    put:
+      tags: [notifications]
+      operationId: registerDevice
+      summary: Register or update the caller's push device
+      description: >-
+        Idempotent per (user, deviceIdentifier). The user and tenant come from
+        the JWT downstream and are never read from the request. The client
+        should call this after a successful sign-in, on app start, and whenever
+        the Expo push token changes.
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_NOTIFICATION_DEVICE_MANAGE
+      parameters:
+        - name: deviceIdentifier
+          in: path
+          required: true
+          description: Stable per-install identifier chosen by the client
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterDeviceRequest'
+      responses:
+        '200':
+          description: Device registered or updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Missing required permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Notification service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [notifications]
+      operationId: removeDevice
+      summary: Stop sending push to the caller's device
+      description: >-
+        Called on logout. Idempotent — removing an unknown or already-removed
+        device still returns 204, so a sign-out is never blocked by it. The
+        device is disabled rather than deleted, keeping its delivery history.
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_NOTIFICATION_DEVICE_MANAGE
+      parameters:
+        - name: deviceIdentifier
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Device disabled
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Missing required permission
           content:
             application/json:
               schema:
@@ -1981,6 +2080,62 @@ components:
           type: boolean
         newPodcastEnabled:
           type: boolean
+
+    RegisterDeviceRequest:
+      type: object
+      required: [platform, provider, pushToken]
+      properties:
+        platform:
+          type: string
+          enum: [IOS, ANDROID]
+        provider:
+          type: string
+          enum: [EXPO]
+          default: EXPO
+        pushToken:
+          type: string
+          description: Provider-issued token, e.g. ExponentPushToken[xxxx]
+        appVersion:
+          type: string
+          nullable: true
+        deviceName:
+          type: string
+          nullable: true
+
+    DeviceResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        deviceIdentifier:
+          type: string
+        platform:
+          type: string
+          enum: [IOS, ANDROID]
+        provider:
+          type: string
+          enum: [EXPO]
+        appVersion:
+          type: string
+          nullable: true
+        deviceName:
+          type: string
+          nullable: true
+        enabled:
+          type: boolean
+        lastSeenAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      # pushToken is never returned: it is a delivery credential, and the
+      # client already knows the value it just sent.
 
     NotificationPreferencesResponse:
       type: object
