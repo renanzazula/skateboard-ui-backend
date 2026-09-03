@@ -2083,7 +2083,10 @@ components:
 
     RegisterDeviceRequest:
       type: object
-      required: [platform, provider, pushToken]
+      # provider is optional: which push service carries the token is the
+      # platform's decision, not something every client build has to restate.
+      # Absent means EXPO.
+      required: [platform, pushToken]
       properties:
         platform:
           type: string
@@ -2092,6 +2095,7 @@ components:
           type: string
           enum: [EXPO]
           default: EXPO
+          nullable: true
         pushToken:
           type: string
           description: Provider-issued token, e.g. ExponentPushToken[xxxx]
