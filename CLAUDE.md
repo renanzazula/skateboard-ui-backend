@@ -8,7 +8,7 @@ A thin Spring Boot Backend-for-Frontend (`ui-backend`, package `com.skateboard.u
 
 Four downstream services exist: `../skateboard-podcast-be`, `../skateboard-user-be`, `../skateboard-app-config-be` and `../skateboard-notification-be`, each with its own vendored spec under `api/`, its own generator execution in `pom.xml`, and its own `client/<name>/` wrapper. Events/spots services from the design doc don't exist, so there's no client or controller for them — don't add one speculatively; follow the `client/podcast/` pattern once a real service exists to call.
 
-`/api/me/preferences` is served by `NotificationController` against `skateboard-notification-be`, not by `UserController` against `skateboard-user-be`, which owned notification preferences until that service existed. The route, the DTO shape and the `FUNC_USER_SELF_READ`/`FUNC_USER_SELF_UPDATE` authorities are all unchanged — only what stands behind them moved — which is why the mobile settings screen needed no change. `skateboard-user-be` still exposes its own copy; nothing calls it.
+`/api/me/preferences` is served by `NotificationController` against `skateboard-notification-be`, not by `UserController` against `skateboard-user-be`, which owned notification preferences until that service existed. The route, the DTO shape and the `FUNC_USER_SELF_READ`/`FUNC_USER_SELF_UPDATE` authorities are all unchanged — only what stands behind them moved — which is why the mobile settings screen needed no change. `skateboard-user-be` no longer has a copy at all — the endpoints, the service behind them and the table were removed once the re-point was live, so there is no second, permanently stale answer to what a user asked for.
 
 ## Build & run
 
