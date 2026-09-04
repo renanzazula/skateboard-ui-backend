@@ -2441,14 +2441,22 @@ components:
           type: string
 
     ErrorResponse:
+      # Matches exception/ErrorResponse, which is what this service actually
+      # serialises. This previously declared {status, error}, which no response
+      # has ever carried — so every client read undefined and fell back, and a
+      # real error code could not be distinguished from a generic failure.
+      # The HTTP status line carries the status; correlationId is what ties a
+      # user-visible failure to the logs across services.
       type: object
       properties:
-        status:
-          type: integer
-        error:
+        code:
           type: string
+          description: Stable machine-readable code, e.g. NOTIFICATION_SERVICE_UNAVAILABLE
         message:
           type: string
+        correlationId:
+          type: string
+          nullable: true
         timestamp:
           type: string
           format: date-time
