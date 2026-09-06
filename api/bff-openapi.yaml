@@ -1699,6 +1699,12 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/CampaignRuntimeResponse'
+        '503':
+          description: App config service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/campaigns/{campaignId}/events:
     post:
