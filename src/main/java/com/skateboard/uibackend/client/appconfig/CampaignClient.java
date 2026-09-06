@@ -1,5 +1,7 @@
 package com.skateboard.uibackend.client.appconfig;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.skateboard.uibackend.client.appconfig.generated.api.CampaignApi;
 import com.skateboard.uibackend.client.appconfig.generated.model.CampaignEventRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.CampaignRequest;
@@ -23,6 +25,7 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -147,13 +150,37 @@ public class CampaignClient {
         }
     }
 
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
     private DownstreamServiceException mapResponseException(WebClientResponseException ex,
                                                            Function<HttpStatusCode, String> messageResolver) {
         HttpStatusCode status = ex.getStatusCode();
         if (status.is5xxServerError()) {
             return serviceUnavailable(ex);
         }
-        return new DownstreamServiceException(status, codeFor(status), messageResolver.apply(status), ex);
+        // Prefer app-config-be's own error message ("Screen 1 needs a background
+        // image or a fallback colour…") — the campaign domain messages are
+        // specific and admin-actionable, unlike branding/About Us where the
+        // canned text is fine. Fall back to the per-verb resolver when the
+        // downstream body isn't a parseable {message: …}.
+        String message = downstreamMessage(ex).orElseGet(() -> messageResolver.apply(status));
+        return new DownstreamServiceException(status, codeFor(status), message, ex);
+    }
+
+    private Optional<String> downstreamMessage(WebClientResponseException ex) {
+        String body = ex.getResponseBodyAsString();
+        if (body == null || body.isBlank()) {
+            return Optional.empty();
+        }
+        try {
+            JsonNode message = OBJECT_MAPPER.readTree(body).get("message");
+            if (message != null && message.isTextual() && !message.asText().isBlank()) {
+                return Optional.of(message.asText());
+            }
+        } catch (IOException ignored) {
+            // not JSON, or no "message" field — use the canned fallback
+        }
+        return Optional.empty();
     }
 
     private DownstreamServiceException serviceUnavailable(Throwable cause) {
