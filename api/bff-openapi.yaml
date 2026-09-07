@@ -49,6 +49,21 @@ tags:
       singleton — one draft, one published version — composed of an ordered
       array of typed content blocks, same opaque shape as PostResponse.blocks.
       Proxied straight through to skateboard-app-config-be.
+  - name: campaign
+    description: >-
+      Startup Campaigns (.docs/README-campaign-v1-implementation-plan.md) —
+      ordered full-screen sponsor/event/announcement sequences shown between
+      the native splash and the app's normal destination. GET
+      /api/campaigns/active and POST /api/campaigns/{id}/events are pre-auth
+      (ANONYMOUS/ALL campaigns render before login); the frontend still relays
+      its bearer on /active when signed in so AUTHENTICATED campaigns resolve.
+      /api/campaigns/admin/** is the admin surface: FUNC_CAMPAIGN_READ for the
+      reads, FUNC_CAMPAIGN_MANAGE for create/edit/screens, FUNC_CAMPAIGN_PUBLISH
+      for publish/pause/archive. A campaign's status is admin-driven
+      (DRAFT/PAUSED/ARCHIVED plus published intent); SCHEDULED/ACTIVE/EXPIRED
+      are computed from startAt/endAt at read time. Screen images are stored
+      as-is (no resizing/CDN in V1) and re-signed on every read. Proxied
+      straight through to skateboard-app-config-be.
 
 paths:
 
@@ -1665,6 +1680,674 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/campaigns/active:
+    get:
+      tags: [campaign]
+      operationId: getActiveCampaigns
+      summary: Get campaigns currently eligible to display (pre-auth)
+      description: >-
+        Already filtered by schedule/status/audience and sorted by priority —
+        the client only applies its own local frequency-capping on top. No
+        token is required; when the frontend sends one, AUTHENTICATED-audience
+        campaigns are included too.
+      responses:
+        '200':
+          description: Eligible campaigns, highest priority first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CampaignRuntimeResponse'
+        '503':
+          description: App config service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/campaigns/{campaignId}/events:
+    post:
+      tags: [campaign]
+      operationId: recordCampaignEvent
+      summary: Record a campaign analytics event (pre-auth)
+      description: >-
+        Impression, completion, skip, CTA click or close. A signed-out session
+        must still be able to report events for an ANONYMOUS/ALL campaign. Never
+        blocks or fails the app; unknown campaign/screen ids are accepted.
+      parameters:
+        - name: campaignId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CampaignEventRequest'
+      responses:
+        '204':
+          description: Event recorded
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/campaigns/admin:
+    get:
+      tags: [campaign]
+      operationId: listCampaigns
+      summary: List all campaigns regardless of status (admin)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_CAMPAIGN_READ
+      responses:
+        '200':
+          description: Campaigns
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CampaignResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_CAMPAIGN_READ required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags: [campaign]
+      operationId: createCampaign
+      summary: Create a new campaign as DRAFT (admin)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_CAMPAIGN_MANAGE
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CampaignRequest'
+      responses:
+        '201':
+          description: Campaign created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_CAMPAIGN_MANAGE required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/campaigns/admin/{campaignId}:
+    get:
+      tags: [campaign]
+      operationId: getCampaign
+      summary: Get a single campaign with its screens (admin)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_CAMPAIGN_READ
+      parameters:
+        - name: campaignId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Campaign
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_CAMPAIGN_READ required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Campaign not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags: [campaign]
+      operationId: updateCampaign
+      summary: Update a campaign's metadata and schedule (admin)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_CAMPAIGN_MANAGE
+      parameters:
+        - name: campaignId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CampaignRequest'
+      responses:
+        '200':
+          description: Campaign updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_CAMPAIGN_MANAGE required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Campaign not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [campaign]
+      operationId: deleteCampaign
+      summary: Delete a campaign (admin, DRAFT only)
+      description: >-
+        Hard delete is only allowed while the campaign is still DRAFT. A
+        campaign that has ever been published must be archived instead — that
+        returns 409.
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_CAMPAIGN_MANAGE
+      parameters:
+        - name: campaignId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Campaign deleted
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_CAMPAIGN_MANAGE required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Campaign not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Campaign is not DRAFT – archive it instead
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/campaigns/admin/{campaignId}/publish:
+    post:
+      tags: [campaign]
+      operationId: publishCampaign
+      summary: Publish a campaign (admin)
+      description: >-
+        Enforces the publish invariants — 1–3 screens, total duration ≤ 10s,
+        endAt after startAt, every screen valid. Invariant failures return 409.
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_CAMPAIGN_PUBLISH
+      parameters:
+        - name: campaignId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Campaign published
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_CAMPAIGN_PUBLISH required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Campaign not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Campaign does not satisfy the publish invariants
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/campaigns/admin/{campaignId}/pause:
+    post:
+      tags: [campaign]
+      operationId: pauseCampaign
+      summary: Pause a published campaign (admin)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_CAMPAIGN_PUBLISH
+      parameters:
+        - name: campaignId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Campaign paused
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_CAMPAIGN_PUBLISH required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Campaign not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Campaign is not in a state that can be paused
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/campaigns/admin/{campaignId}/archive:
+    post:
+      tags: [campaign]
+      operationId: archiveCampaign
+      summary: Archive a campaign (admin)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_CAMPAIGN_PUBLISH
+      parameters:
+        - name: campaignId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Campaign archived
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_CAMPAIGN_PUBLISH required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Campaign not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/campaigns/admin/{campaignId}/screens:
+    post:
+      tags: [campaign]
+      operationId: addCampaignScreen
+      summary: Add a screen to a campaign (admin)
+      description: >-
+        Appended after the last existing screen; upload its image separately
+        afterward. Rejects past the V1 limit of 3 screens or 10s total duration.
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_CAMPAIGN_MANAGE
+      parameters:
+        - name: campaignId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CampaignScreenRequest'
+      responses:
+        '201':
+          description: Screen added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignScreenResponse'
+        '400':
+          description: Invalid input, or the screen/duration limit would be exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_CAMPAIGN_MANAGE required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Campaign not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/campaigns/admin/{campaignId}/screens/reorder:
+    put:
+      tags: [campaign]
+      operationId: reorderCampaignScreens
+      summary: Reorder a campaign's screens (admin)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_CAMPAIGN_MANAGE
+      parameters:
+        - name: campaignId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReorderCampaignScreensRequest'
+      responses:
+        '200':
+          description: Screens reordered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignResponse'
+        '400':
+          description: screenIds is not a full permutation of the campaign's screens
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_CAMPAIGN_MANAGE required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Campaign not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/campaigns/admin/{campaignId}/screens/{screenId}:
+    put:
+      tags: [campaign]
+      operationId: updateCampaignScreen
+      summary: Update a screen's content and behavior (admin)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_CAMPAIGN_MANAGE
+      parameters:
+        - name: campaignId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: screenId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CampaignScreenRequest'
+      responses:
+        '200':
+          description: Screen updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignScreenResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_CAMPAIGN_MANAGE required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Campaign or screen not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [campaign]
+      operationId: removeCampaignScreen
+      summary: Remove a screen from a campaign (admin)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_CAMPAIGN_MANAGE
+      parameters:
+        - name: campaignId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: screenId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Screen removed
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_CAMPAIGN_MANAGE required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Campaign or screen not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/campaigns/admin/{campaignId}/screens/{screenId}/image:
+    post:
+      tags: [campaign]
+      operationId: uploadCampaignScreenImage
+      summary: Upload/replace a screen's background image and focal point (admin)
+      description: Stores the image as-is (no resizing/variants in V1).
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_CAMPAIGN_MANAGE
+      parameters:
+        - name: campaignId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: screenId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                focalPointX:
+                  type: number
+                  format: float
+                  minimum: 0
+                  maximum: 1
+                focalPointY:
+                  type: number
+                  format: float
+                  minimum: 0
+                  maximum: 1
+      responses:
+        '200':
+          description: Screen image updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignScreenResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_CAMPAIGN_MANAGE required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Campaign or screen not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -2437,14 +3120,317 @@ components:
           type: string
 
     ErrorResponse:
+      # Matches exception/ErrorResponse, which is what this service actually
+      # serialises. This previously declared {status, error}, which no response
+      # has ever carried — so every client read undefined and fell back, and a
+      # real error code could not be distinguished from a generic failure.
+      # The HTTP status line carries the status; correlationId is what ties a
+      # user-visible failure to the logs across services.
       type: object
       properties:
-        status:
-          type: integer
-        error:
+        code:
           type: string
+          description: Stable machine-readable code, e.g. APP_CONFIG_SERVICE_UNAVAILABLE
         message:
+          type: string
+        correlationId:
           type: string
         timestamp:
           type: string
           format: date-time
+
+    # ── Campaign V1 (proxied from skateboard-app-config-be) ──────────────
+
+    CampaignStatus:
+      type: string
+      description: >-
+        The API-level lifecycle value. SCHEDULED/ACTIVE/EXPIRED are computed
+        from startAt/endAt at read time, not stored or transitioned by a job —
+        only DRAFT/PAUSED/ARCHIVED and the published intent are admin-driven.
+      enum: [DRAFT, SCHEDULED, ACTIVE, PAUSED, EXPIRED, ARCHIVED]
+
+    CampaignAudience:
+      type: string
+      enum: [ALL, AUTHENTICATED, ANONYMOUS]
+
+    CampaignFrequencyType:
+      type: string
+      enum: [ALWAYS, ONCE, ONCE_PER_SESSION, ONCE_PER_DAY, MAX_PER_DAY]
+
+    CampaignLayoutType:
+      type: string
+      description: V1 only has FULL_BACKGROUND; kept as its own enum for future layouts.
+      enum: [FULL_BACKGROUND]
+
+    CampaignTextAlignment:
+      type: string
+      enum: [LEFT, CENTER, RIGHT]
+
+    CampaignTextSize:
+      type: string
+      enum: [SMALL, MEDIUM, LARGE, EXTRA_LARGE]
+
+    CampaignActionType:
+      type: string
+      enum: [NONE, INTERNAL, EXTERNAL]
+
+    CampaignEventType:
+      type: string
+      enum:
+        - CAMPAIGN_STARTED
+        - CAMPAIGN_SCREEN_IMPRESSION
+        - CAMPAIGN_SCREEN_COMPLETED
+        - CAMPAIGN_SCREEN_SKIPPED
+        - CAMPAIGN_CTA_CLICKED
+        - CAMPAIGN_CLOSED
+        - CAMPAIGN_COMPLETED
+
+    CampaignRequest:
+      type: object
+      required: [name, startAt, endAt, priority, audience, frequencyType]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+          description: Internal-only note; never shown to end users.
+        startAt:
+          type: string
+          format: date-time
+        endAt:
+          type: string
+          format: date-time
+        priority:
+          type: integer
+          description: Higher priority wins when multiple campaigns are eligible at once.
+        audience:
+          $ref: '#/components/schemas/CampaignAudience'
+        frequencyType:
+          $ref: '#/components/schemas/CampaignFrequencyType'
+        maxDisplaysPerDay:
+          type: integer
+          nullable: true
+          description: Required and only meaningful when frequencyType is MAX_PER_DAY.
+
+    CampaignResponse:
+      type: object
+      required: [id, name, status, startAt, endAt, priority, audience, frequencyType, screens]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        status:
+          $ref: '#/components/schemas/CampaignStatus'
+        startAt:
+          type: string
+          format: date-time
+        endAt:
+          type: string
+          format: date-time
+        priority:
+          type: integer
+        audience:
+          $ref: '#/components/schemas/CampaignAudience'
+        frequencyType:
+          $ref: '#/components/schemas/CampaignFrequencyType'
+        maxDisplaysPerDay:
+          type: integer
+          nullable: true
+        screens:
+          type: array
+          items:
+            $ref: '#/components/schemas/CampaignScreenResponse'
+        createdBy:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedBy:
+          type: string
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+        publishedBy:
+          type: string
+          nullable: true
+        publishedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    CampaignScreenRequest:
+      type: object
+      required: [durationSeconds, layoutType, textAlignment, titleSize, descriptionSize, closeEnabled, actionType]
+      properties:
+        durationSeconds:
+          type: integer
+        layoutType:
+          $ref: '#/components/schemas/CampaignLayoutType'
+        backgroundColor:
+          type: string
+          nullable: true
+          description: Fallback color shown while/if the background image isn't loaded.
+        title:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        textAlignment:
+          $ref: '#/components/schemas/CampaignTextAlignment'
+        titleSize:
+          $ref: '#/components/schemas/CampaignTextSize'
+        descriptionSize:
+          $ref: '#/components/schemas/CampaignTextSize'
+        textColor:
+          type: string
+          nullable: true
+        overlayOpacity:
+          type: number
+          format: float
+          nullable: true
+          minimum: 0
+          maximum: 1
+        closeEnabled:
+          type: boolean
+        closeAfterSeconds:
+          type: integer
+          nullable: true
+          description: >-
+            Must satisfy 0 <= closeAfterSeconds < durationSeconds when set;
+            defaults to 1 second when closeEnabled is true and this is omitted.
+        actionType:
+          $ref: '#/components/schemas/CampaignActionType'
+        actionLabel:
+          type: string
+          nullable: true
+        actionTarget:
+          type: string
+          nullable: true
+          description: >-
+            A supported internal route (INTERNAL) or a validated external URL
+            (EXTERNAL); required unless actionType is NONE.
+
+    CampaignScreenResponse:
+      type: object
+      required: [id, position, durationSeconds, layoutType, textAlignment, titleSize, descriptionSize, closeEnabled, actionType]
+      properties:
+        id:
+          type: string
+          format: uuid
+        position:
+          type: integer
+        durationSeconds:
+          type: integer
+        layoutType:
+          $ref: '#/components/schemas/CampaignLayoutType'
+        backgroundUrl:
+          type: string
+          nullable: true
+          description: Freshly presigned on every read; never persisted as-is.
+        backgroundColor:
+          type: string
+          nullable: true
+        focalPointX:
+          type: number
+          format: float
+          nullable: true
+        focalPointY:
+          type: number
+          format: float
+          nullable: true
+        title:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        textAlignment:
+          $ref: '#/components/schemas/CampaignTextAlignment'
+        titleSize:
+          $ref: '#/components/schemas/CampaignTextSize'
+        descriptionSize:
+          $ref: '#/components/schemas/CampaignTextSize'
+        textColor:
+          type: string
+          nullable: true
+        overlayOpacity:
+          type: number
+          format: float
+          nullable: true
+        closeEnabled:
+          type: boolean
+        closeAfterSeconds:
+          type: integer
+          nullable: true
+        actionType:
+          $ref: '#/components/schemas/CampaignActionType'
+        actionLabel:
+          type: string
+          nullable: true
+        actionTarget:
+          type: string
+          nullable: true
+
+    CampaignRuntimeResponse:
+      type: object
+      required: [id, priority, frequencyType, screens]
+      description: >-
+        The lean, display-only shape for GET /api/campaigns/active — no name,
+        description, or audit fields; the client has no use for them.
+      properties:
+        id:
+          type: string
+          format: uuid
+        priority:
+          type: integer
+        frequencyType:
+          $ref: '#/components/schemas/CampaignFrequencyType'
+        maxDisplaysPerDay:
+          type: integer
+          nullable: true
+        screens:
+          type: array
+          items:
+            $ref: '#/components/schemas/CampaignScreenResponse'
+
+    ReorderCampaignScreensRequest:
+      type: object
+      required: [screenIds]
+      properties:
+        screenIds:
+          type: array
+          description: The campaign's screen ids in their new display order; must be a full permutation of its existing screens.
+          items:
+            type: string
+            format: uuid
+
+    CampaignEventRequest:
+      type: object
+      required: [eventType]
+      properties:
+        eventType:
+          $ref: '#/components/schemas/CampaignEventType'
+        screenId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Omitted for campaign-level events (CAMPAIGN_STARTED/COMPLETED).
+        platform:
+          type: string
+          nullable: true
+        appVersion:
+          type: string
+          nullable: true
+        actionTarget:
+          type: string
+          nullable: true
+          description: Only set for CAMPAIGN_CTA_CLICKED.

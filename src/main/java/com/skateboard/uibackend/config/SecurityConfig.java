@@ -62,6 +62,14 @@ public class SecurityConfig {
                         // app logo) — api/app-config-openapi.yaml's "public" tag
                         // carries no x-required-permissions.
                         .requestMatchers(HttpMethod.GET, "/api/config").permitAll()
+                        // Startup campaigns must resolve (and report analytics)
+                        // before login — ANONYMOUS/ALL campaigns render pre-auth.
+                        // Mirrors skateboard-app-config-be's SecurityConfig; the
+                        // campaign tag carries no x-required-permissions on these
+                        // two. Token relay still forwards a bearer when the
+                        // frontend sends one (needed for AUTHENTICATED campaigns).
+                        .requestMatchers(HttpMethod.GET, "/api/campaigns/active").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/campaigns/*/events").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(o -> o
                         .jwt(jwt -> jwt
