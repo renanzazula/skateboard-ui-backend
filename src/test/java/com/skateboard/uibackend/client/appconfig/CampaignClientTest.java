@@ -1,7 +1,10 @@
 package com.skateboard.uibackend.client.appconfig;
 
 import com.skateboard.uibackend.client.appconfig.generated.api.CampaignApi;
+import com.skateboard.uibackend.client.appconfig.generated.model.CampaignEventRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.CampaignResponse;
+import com.skateboard.uibackend.client.appconfig.generated.model.CampaignRuntimeResponse;
+import com.skateboard.uibackend.client.appconfig.generated.model.CampaignScreenResponse;
 import com.skateboard.uibackend.exception.DownstreamServiceException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,8 +16,13 @@ import org.springframework.web.reactive.function.client.WebClientRequestExceptio
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 
+import org.springframework.mock.web.MockMultipartFile;
+
+import java.io.File;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -123,5 +131,123 @@ class CampaignClientTest {
                 .isInstanceOf(DownstreamServiceException.class)
                 .satisfies(t -> assertThat(((DownstreamServiceException) t).getStatus())
                         .isEqualTo(HttpStatus.SERVICE_UNAVAILABLE));
+    }
+
+    // ── the runtime routes ────────────────────────────────────────────────
+
+    @Test
+    void collectsTheActiveCampaignFluxIntoAList() {
+        CampaignRuntimeResponse first = new CampaignRuntimeResponse().id(id).priority(10);
+        CampaignRuntimeResponse second = new CampaignRuntimeResponse().id(UUID.randomUUID()).priority(5);
+        when(campaignApi.getActiveCampaigns()).thenReturn(reactor.core.publisher.Flux.just(first, second));
+
+        assertThat(client.getActiveCampaigns()).containsExactly(first, second);
+    }
+
+    @Test
+    void anEmptyActiveCampaignFluxBecomesAnEmptyListNotNull() {
+        when(campaignApi.getActiveCampaigns()).thenReturn(reactor.core.publisher.Flux.empty());
+
+        assertThat(client.getActiveCampaigns()).isEmpty();
+    }
+
+    @Test
+    void aRejectedEventReportsTheEventSpecificCannedMessage() {
+        CampaignEventRequest request = new CampaignEventRequest();
+        when(campaignApi.recordCampaignEvent(id, request))
+                .thenReturn(Mono.error(responseException(HttpStatus.BAD_REQUEST, "not json")));
+
+        DownstreamServiceException ex = catchThrowableOfType(
+                () -> client.recordCampaignEvent(id, request), DownstreamServiceException.class);
+
+        assertThat(ex.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(ex.getMessage()).isEqualTo("Invalid campaign event payload");
+    }
+
+    // ── per-verb canned fallbacks ─────────────────────────────────────────
+
+    @Test
+    void anUnparseableLifecycleConflictFallsBackToTheTransitionMessage() {
+        when(campaignApi.archiveCampaign(id))
+                .thenReturn(Mono.error(responseException(HttpStatus.CONFLICT, "")));
+
+        DownstreamServiceException ex = catchThrowableOfType(
+                () -> client.archiveCampaign(id), DownstreamServiceException.class);
+
+        assertThat(ex.getCode()).isEqualTo("APP_CONFIG_CONFLICT");
+        assertThat(ex.getMessage()).isEqualTo("This campaign can't move to that state from its current status.");
+    }
+
+    @Test
+    void anUnparseableLifecycleBadRequestExplainsTheAggregateRequirements() {
+        when(campaignApi.publishCampaign(id))
+                .thenReturn(Mono.error(responseException(HttpStatus.BAD_REQUEST, null)));
+
+        DownstreamServiceException ex = catchThrowableOfType(
+                () -> client.publishCampaign(id), DownstreamServiceException.class);
+
+        assertThat(ex.getMessage()).contains("1–3 screens").contains("10s");
+    }
+
+    @Test
+    void aBodyWhoseMessageIsBlankFallsBackRatherThanRelayingEmptyText() {
+        when(campaignApi.getCampaign(id)).thenReturn(Mono.error(responseException(
+                HttpStatus.NOT_FOUND, "{\"message\":\"   \"}")));
+
+        DownstreamServiceException ex = catchThrowableOfType(
+                () -> client.getCampaign(id), DownstreamServiceException.class);
+
+        assertThat(ex.getMessage()).isEqualTo("Campaign or screen not found");
+    }
+
+    @Test
+    void anUnmappedClientErrorGetsTheGenericCodeAndMessage() {
+        when(campaignApi.getCampaign(id)).thenReturn(Mono.error(
+                responseException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "")));
+
+        DownstreamServiceException ex = catchThrowableOfType(
+                () -> client.getCampaign(id), DownstreamServiceException.class);
+
+        assertThat(ex.getCode()).isEqualTo("APP_CONFIG_REQUEST_ERROR");
+        assertThat(ex.getMessage()).isEqualTo("App config service rejected the request");
+    }
+
+    // ── the multipart upload materializes a temp file ─────────────────────
+
+    @Test
+    void theUploadTempFileIsDeletedOnceTheCallSucceeds() {
+        MockMultipartFile file = new MockMultipartFile("file", "hero.webp", "image/webp", "bytes".getBytes());
+        List<File> seen = new ArrayList<>();
+        when(campaignApi.uploadCampaignScreenImage(org.mockito.ArgumentMatchers.eq(id),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
+                .thenAnswer(inv -> {
+                    seen.add(inv.getArgument(2));
+                    return Mono.just(new CampaignScreenResponse());
+                });
+
+        client.uploadCampaignScreenImage(id, UUID.randomUUID(), file, 0.5f, 0.5f);
+
+        assertThat(seen).hasSize(1);
+        assertThat(seen.get(0)).doesNotExist();
+    }
+
+    @Test
+    void theUploadTempFileIsDeletedEvenWhenTheDownstreamCallFails() {
+        MockMultipartFile file = new MockMultipartFile("file", "hero.webp", "image/webp", "bytes".getBytes());
+        List<File> seen = new ArrayList<>();
+        when(campaignApi.uploadCampaignScreenImage(org.mockito.ArgumentMatchers.eq(id),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
+                .thenAnswer(inv -> {
+                    seen.add(inv.getArgument(2));
+                    return Mono.error(responseException(HttpStatus.BAD_REQUEST, ""));
+                });
+
+        assertThatThrownBy(() -> client.uploadCampaignScreenImage(id, UUID.randomUUID(), file, null, null))
+                .isInstanceOf(DownstreamServiceException.class);
+
+        assertThat(seen).hasSize(1);
+        assertThat(seen.get(0)).doesNotExist();
     }
 }
