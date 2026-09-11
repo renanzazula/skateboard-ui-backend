@@ -29,6 +29,7 @@ public class PodcastFeaturedContentResolver implements FeaturedContentResolver {
 
     private static final Logger log = LoggerFactory.getLogger(PodcastFeaturedContentResolver.class);
     private static final String SUBTITLE = "Skateboard Podcast";
+    private static final String YOUTUBE = "YOUTUBE";
 
     private final PodcastClient podcastClient;
 
@@ -123,7 +124,7 @@ public class PodcastFeaturedContentResolver implements FeaturedContentResolver {
         HomeFeaturedPlayerResponse.Playback spotify = spotifyPlayback(post);
         HomeFeaturedPlayerResponse.Playback youtube = youtubePlayback(post);
 
-        if ("YOUTUBE".equals(preferredPlatform) && youtube != null) {
+        if (YOUTUBE.equals(preferredPlatform) && youtube != null) {
             return youtube;
         }
         if ("SPOTIFY".equals(preferredPlatform) && spotify != null) {
@@ -144,9 +145,9 @@ public class PodcastFeaturedContentResolver implements FeaturedContentResolver {
     private HomeFeaturedPlayerResponse.Playback youtubePlayback(PostResponse post) {
         PostPlatformResponse youtube = findPlatform(post.getPlatforms(), PostPlatformResponse.PlatformEnum.YOUTUBE);
         if (youtube != null && youtube.getExternalUrl() != null) {
-            return new HomeFeaturedPlayerResponse.Playback("YOUTUBE", youtube.getExternalUrl());
+            return new HomeFeaturedPlayerResponse.Playback(YOUTUBE, youtube.getExternalUrl());
         }
-        return post.getYoutubeUrl() != null ? new HomeFeaturedPlayerResponse.Playback("YOUTUBE", post.getYoutubeUrl()) : null;
+        return post.getYoutubeUrl() != null ? new HomeFeaturedPlayerResponse.Playback(YOUTUBE, post.getYoutubeUrl()) : null;
     }
 
     private PostPlatformResponse findPlatform(List<PostPlatformResponse> platforms, PostPlatformResponse.PlatformEnum platform) {
