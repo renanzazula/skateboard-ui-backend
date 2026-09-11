@@ -32,4 +32,19 @@ public interface FeaturedContentResolver {
      *                          can't be honored.
      */
     HomeFeaturedPlayerResponse resolve(String contentId, String preferredPlatform);
+
+    /**
+     * AUTO selection mode: resolves whatever the source itself considers its
+     * current "latest eligible" content, ignoring any admin-picked
+     * {@code contentId} — app-config-be doesn't persist one in AUTO mode.
+     * Defaults to {@code null} (unsupported) so existing/future resolvers
+     * that don't have a meaningful "latest" concept don't have to implement
+     * it; {@link HomeFeaturedPlayerService} treats that the same as "nothing
+     * to feature" rather than an error.
+     *
+     * @param preferredPlatform same meaning as in {@link #resolve}
+     */
+    default HomeFeaturedPlayerResponse resolveAuto(String preferredPlatform) {
+        return null;
+    }
 }

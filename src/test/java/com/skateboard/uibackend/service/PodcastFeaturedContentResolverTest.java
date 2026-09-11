@@ -117,6 +117,53 @@ class PodcastFeaturedContentResolverTest {
     }
 
     @Test
+    void resolveAutoBuildsResponseFromTheLatestEpisodePodcastReturns() {
+        UUID id = UUID.randomUUID();
+        PostResponse post = new PostResponse()
+                .id(id).title("TOM YUKIO - Skateboard Podcast #124").coverUrl("cover.png").durationSeconds(120)
+                .status(PostResponse.StatusEnum.PUBLISHED)
+                .platforms(List.of(new PostPlatformResponse().platform(PostPlatformResponse.PlatformEnum.YOUTUBE)
+                        .externalUrl("https://youtube.com/watch?v=x")));
+        when(podcastClient.getFeaturedEpisode()).thenReturn(post);
+
+        HomeFeaturedPlayerResponse result = resolver.resolveAuto(null);
+
+        assertThat(result.id()).isEqualTo(id.toString());
+        assertThat(result.title()).isEqualTo("TOM YUKIO - Skateboard Podcast #124");
+        assertThat(result.playback().type()).isEqualTo("YOUTUBE");
+    }
+
+    @Test
+    void resolveAutoReturnsNullWhenNoEpisodeCurrentlyQualifies() {
+        when(podcastClient.getFeaturedEpisode()).thenReturn(null);
+
+        assertThat(resolver.resolveAuto(null)).isNull();
+    }
+
+    @Test
+    void resolveAutoReturnsNullWhenTheQualifyingPostHasNoResolvablePlayback() {
+        UUID id = UUID.randomUUID();
+        PostResponse post = new PostResponse().id(id).title("Skateboard Podcast #124")
+                .status(PostResponse.StatusEnum.PUBLISHED);
+        when(podcastClient.getFeaturedEpisode()).thenReturn(post);
+
+        assertThat(resolver.resolveAuto(null)).isNull();
+    }
+
+    // A genuine downstream outage (as opposed to "no post currently
+    // qualifies", which PodcastClient.getFeaturedEpisode() already turns
+    // into null) is deliberately NOT swallowed here — same as resolve()'s
+    // handling of a non-404 DownstreamServiceException from getById.
+    @Test
+    void resolveAutoPropagatesAGenuinePodcastServiceOutage() {
+        when(podcastClient.getFeaturedEpisode())
+                .thenThrow(new DownstreamServiceException(HttpStatus.SERVICE_UNAVAILABLE, "PODCAST_SERVICE_UNAVAILABLE", "down"));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> resolver.resolveAuto(null))
+                .isInstanceOf(DownstreamServiceException.class);
+    }
+
+    @Test
     void unavailablePreferredPlatformFallsBackToWhicheverIsAvailable() {
         UUID id = UUID.randomUUID();
         PostResponse post = new PostResponse()

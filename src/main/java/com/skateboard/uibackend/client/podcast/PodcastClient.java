@@ -57,6 +57,25 @@ public class PodcastClient {
         return call(() -> podcastApi.getPodcastPostById(id));
     }
 
+    /**
+     * The latest published, YouTube-sourced post matching the official
+     * episode title pattern — backs the Home Featured Player's AUTO
+     * selection mode. Unlike {@link #getById}, a 404 here is an expected,
+     * routine outcome ("nothing currently qualifies") rather than a caller
+     * error, so it's swallowed into {@code null} instead of propagating as a
+     * {@link DownstreamServiceException}.
+     */
+    public PostResponse getFeaturedEpisode() {
+        try {
+            return call(podcastApi::getFeaturedEpisode);
+        } catch (DownstreamServiceException ex) {
+            if ("PODCAST_NOT_FOUND".equals(ex.getCode())) {
+                return null;
+            }
+            throw ex;
+        }
+    }
+
     public PostResponse create(CreatePostRequest request) {
         return call(() -> podcastApi.createPodcastPost(request));
     }

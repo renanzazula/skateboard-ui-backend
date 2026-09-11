@@ -2,6 +2,7 @@ package com.skateboard.uibackend.service;
 
 import com.skateboard.uibackend.client.appconfig.AppConfigClient;
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeFeaturedPlayerConfigResponse;
+import com.skateboard.uibackend.client.appconfig.generated.model.HomeFeaturedPlayerSelectionMode;
 import com.skateboard.uibackend.dto.HomeFeaturedPlayerResponse;
 import com.skateboard.uibackend.exception.DownstreamServiceException;
 import org.slf4j.Logger;
@@ -13,12 +14,16 @@ import java.util.List;
 /**
  * Resolves the Home dashboard's effective Featured Player: reads the default
  * configuration from skateboard-app-config-be, then hands the configured
- * {@code contentSource}/{@code contentId} to the matching {@link
- * FeaturedContentResolver}. Returns {@code null} whenever the player
- * shouldn't be shown — disabled, unconfigured, app-config-be unavailable, or
- * the referenced content unresolvable — never an error
- * (README-home-featured-mini-player.md §14/§21): the rest of Home must stay
- * usable regardless of this feature's state.
+ * {@code contentSource} (and, in MANUAL mode, {@code contentId}) to the
+ * matching {@link FeaturedContentResolver}. In AUTO mode there is no
+ * persisted {@code contentId} to hand over — {@link
+ * FeaturedContentResolver#resolveAuto} is called instead, on every read, so
+ * the resolver's own source decides what's currently "latest". Returns
+ * {@code null} whenever the player shouldn't be shown — disabled,
+ * unconfigured, app-config-be unavailable, or the referenced content
+ * unresolvable — never an error (README-home-featured-mini-player.md
+ * §14/§21): the rest of Home must stay usable regardless of this feature's
+ * state.
  */
 @Service
 public class HomeFeaturedPlayerService {
@@ -35,8 +40,11 @@ public class HomeFeaturedPlayerService {
 
     public HomeFeaturedPlayerResponse getFeaturedPlayer() {
         HomeFeaturedPlayerConfigResponse config = loadConfigOrNull();
+        boolean auto = config != null && config.getSelectionMode() == HomeFeaturedPlayerSelectionMode.AUTO;
+        // AUTO never has a persisted contentId — app-config-be doesn't store
+        // one for it, the resolver finds its own "latest" content instead.
         if (config == null || !Boolean.TRUE.equals(config.getEnabled())
-                || config.getContentSource() == null || config.getContentId() == null) {
+                || config.getContentSource() == null || (!auto && config.getContentId() == null)) {
             return null;
         }
         FeaturedContentResolver resolver = resolvers.stream()
@@ -48,7 +56,11 @@ public class HomeFeaturedPlayerService {
             return null;
         }
         String preferredPlatform = config.getPreferredPlatform() != null ? config.getPreferredPlatform().getValue() : null;
-        HomeFeaturedPlayerResponse resolved = resolver.resolve(config.getContentId(), preferredPlatform);
+        // A missing selectionMode means this response predates the field —
+        // must read as MANUAL (today's behavior) rather than AUTO.
+        HomeFeaturedPlayerResponse resolved = auto
+                ? resolver.resolveAuto(preferredPlatform)
+                : resolver.resolve(config.getContentId(), preferredPlatform);
         if (resolved == null) {
             return null;
         }

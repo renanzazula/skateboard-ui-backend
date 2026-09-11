@@ -19,6 +19,10 @@ import java.util.UUID;
  * feature's "Spotify-style mini player" framing), falls back to YOUTUBE, then
  * to the post's legacy {@code youtubeVideoId}/{@code youtubeUrl} fields for
  * posts ingested before platform links existed.
+ *
+ * <p>{@link #resolveAuto} (AUTO selection mode) resolves the same way once it
+ * has a post — it just gets that post from podcast-be's "latest official
+ * episode" lookup instead of an admin-picked id.
  */
 @Component
 public class PodcastFeaturedContentResolver implements FeaturedContentResolver {
@@ -47,13 +51,42 @@ public class PodcastFeaturedContentResolver implements FeaturedContentResolver {
             log.warn("Home Featured Player references unpublished/removed post id={}", contentId);
             return null;
         }
-        HomeFeaturedPlayerResponse.Playback playback = resolvePlayback(post, preferredPlatform);
-        if (playback == null) {
+        HomeFeaturedPlayerResponse resolved = toResponse(post, preferredPlatform);
+        if (resolved == null) {
             log.warn("Home Featured Player references post id={} with no resolvable playback", contentId);
+        }
+        return resolved;
+    }
+
+    /**
+     * AUTO mode: asks podcast-be for the latest post matching the official
+     * episode pattern instead of resolving an admin-picked id. podcast-be's
+     * endpoint already only returns published, YouTube-sourced, pattern-
+     * matching posts, so — unlike {@link #resolve} — there's no separate
+     * status check to make here.
+     */
+    @Override
+    public HomeFeaturedPlayerResponse resolveAuto(String preferredPlatform) {
+        PostResponse post = podcastClient.getFeaturedEpisode();
+        if (post == null) {
+            log.info("Home Featured Player AUTO mode: no post currently matches the official episode pattern");
             return null;
         }
-        // position is filled in by HomeFeaturedPlayerService from the config
-        // response — the resolver only knows about the content itself.
+        HomeFeaturedPlayerResponse resolved = toResponse(post, preferredPlatform);
+        if (resolved == null) {
+            log.warn("Home Featured Player AUTO mode: post id={} has no resolvable playback", post.getId());
+        }
+        return resolved;
+    }
+
+    // Shared by both resolve() and resolveAuto() — position is filled in by
+    // HomeFeaturedPlayerService from the config response, the resolver only
+    // knows about the content itself.
+    private HomeFeaturedPlayerResponse toResponse(PostResponse post, String preferredPlatform) {
+        HomeFeaturedPlayerResponse.Playback playback = resolvePlayback(post, preferredPlatform);
+        if (playback == null) {
+            return null;
+        }
         return new HomeFeaturedPlayerResponse(post.getId().toString(), FeaturedContentSource.PODCAST.getValue(),
                 post.getTitle(), SUBTITLE, post.getCoverUrl(), post.getDurationSeconds(), playback, null);
     }
