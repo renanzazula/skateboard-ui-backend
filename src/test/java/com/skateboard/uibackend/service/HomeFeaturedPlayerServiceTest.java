@@ -3,6 +3,7 @@ package com.skateboard.uibackend.service;
 import com.skateboard.uibackend.client.appconfig.AppConfigClient;
 import com.skateboard.uibackend.client.appconfig.generated.model.FeaturedContentSource;
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeFeaturedPlayerConfigResponse;
+import com.skateboard.uibackend.client.appconfig.generated.model.HomeFeaturedPlayerSelectionMode;
 import com.skateboard.uibackend.client.appconfig.generated.model.HomePlayerPosition;
 import com.skateboard.uibackend.client.appconfig.generated.model.HomePlayerType;
 import com.skateboard.uibackend.dto.HomeFeaturedPlayerResponse;
@@ -76,6 +77,57 @@ class HomeFeaturedPlayerServiceTest {
         when(resolver.supports(FeaturedContentSource.PODCAST)).thenReturn(false);
 
         assertThat(service.getFeaturedPlayer()).isNull();
+    }
+
+    @Test
+    void autoModeResolvesTheLatestEpisodeIgnoringAnyStoredContentId() {
+        when(appConfigClient.getHomeFeaturedPlayerConfig()).thenReturn(new HomeFeaturedPlayerConfigResponse()
+                .enabled(true).contentSource(FeaturedContentSource.PODCAST).contentId(null)
+                .playerType(HomePlayerType.MINI).position(HomePlayerPosition.TOP)
+                .selectionMode(HomeFeaturedPlayerSelectionMode.AUTO));
+        when(resolver.supports(FeaturedContentSource.PODCAST)).thenReturn(true);
+        HomeFeaturedPlayerResponse resolved = new HomeFeaturedPlayerResponse("post-124", "PODCAST",
+                "Skateboard Podcast #124", "Skateboard Podcast", "cover.png", 100,
+                new HomeFeaturedPlayerResponse.Playback("YOUTUBE", "https://youtube.com/watch?v=x"), null);
+        when(resolver.resolveAuto(null)).thenReturn(resolved);
+
+        HomeFeaturedPlayerResponse result = service.getFeaturedPlayer();
+
+        assertThat(result.id()).isEqualTo("post-124");
+        assertThat(result.position()).isEqualTo("TOP");
+    }
+
+    @Test
+    void autoModeReturnsNullWhenNoEpisodeCurrentlyQualifies() {
+        when(appConfigClient.getHomeFeaturedPlayerConfig()).thenReturn(new HomeFeaturedPlayerConfigResponse()
+                .enabled(true).contentSource(FeaturedContentSource.PODCAST).contentId(null)
+                .playerType(HomePlayerType.MINI).position(HomePlayerPosition.TOP)
+                .selectionMode(HomeFeaturedPlayerSelectionMode.AUTO));
+        when(resolver.supports(FeaturedContentSource.PODCAST)).thenReturn(true);
+        when(resolver.resolveAuto(null)).thenReturn(null);
+
+        assertThat(service.getFeaturedPlayer()).isNull();
+    }
+
+    /**
+     * A config response with no selectionMode at all (as every response did
+     * before this field existed) must be treated as MANUAL, not AUTO — an
+     * existing manual configuration must keep working unchanged.
+     */
+    @Test
+    void treatsAMissingSelectionModeAsManual() {
+        when(appConfigClient.getHomeFeaturedPlayerConfig()).thenReturn(new HomeFeaturedPlayerConfigResponse()
+                .enabled(true).contentSource(FeaturedContentSource.PODCAST).contentId("post-1")
+                .playerType(HomePlayerType.MINI).position(HomePlayerPosition.BOTTOM)
+                .selectionMode(null));
+        when(resolver.supports(FeaturedContentSource.PODCAST)).thenReturn(true);
+        HomeFeaturedPlayerResponse resolved = new HomeFeaturedPlayerResponse("post-1", "PODCAST", "Ep 1", "Skateboard Podcast",
+                "cover.png", 100, new HomeFeaturedPlayerResponse.Playback("YOUTUBE", "https://youtube.com/watch?v=x"), null);
+        when(resolver.resolve("post-1", null)).thenReturn(resolved);
+
+        HomeFeaturedPlayerResponse result = service.getFeaturedPlayer();
+
+        assertThat(result.id()).isEqualTo("post-1");
     }
 
     @Test

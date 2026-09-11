@@ -1608,6 +1608,18 @@ components:
         platform is actually available if the preferred one isn't.
       enum: [SPOTIFY, YOUTUBE]
 
+    HomeFeaturedPlayerSelectionMode:
+      type: string
+      description: >-
+        MANUAL: contentId is admin-picked and is never touched by the
+        podcast source's own sync jobs. AUTO: contentId is not persisted
+        (always null) — the effective episode is resolved live, on every
+        read, as the latest published/YouTube-sourced post matching the
+        official "Skateboard Podcast #<n>" pattern. A missing/omitted value
+        (e.g. a config response from before this field existed) must be
+        treated as MANUAL.
+      enum: [MANUAL, AUTO]
+
     HomeFeaturedPlayerConfigResponse:
       type: object
       properties:
@@ -1627,6 +1639,10 @@ components:
         preferredPlatform:
           allOf:
             - $ref: '#/components/schemas/PreferredPlaybackPlatform'
+          nullable: true
+        selectionMode:
+          allOf:
+            - $ref: '#/components/schemas/HomeFeaturedPlayerSelectionMode'
           nullable: true
         updatedAt:
           type: string
@@ -1653,6 +1669,10 @@ components:
         preferredPlatform:
           allOf:
             - $ref: '#/components/schemas/PreferredPlaybackPlatform'
+          nullable: true
+        selectionMode:
+          allOf:
+            - $ref: '#/components/schemas/HomeFeaturedPlayerSelectionMode'
           nullable: true
 
     CampaignStatus:
