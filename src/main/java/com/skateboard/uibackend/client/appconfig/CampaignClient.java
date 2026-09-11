@@ -10,6 +10,7 @@ import com.skateboard.uibackend.client.appconfig.generated.model.CampaignRuntime
 import com.skateboard.uibackend.client.appconfig.generated.model.CampaignScreenRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.CampaignScreenResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.ReorderCampaignScreensRequest;
+import com.skateboard.uibackend.client.support.TempFiles;
 import com.skateboard.uibackend.exception.DownstreamServiceException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -250,7 +251,7 @@ public class CampaignClient {
             String suffix = file.getOriginalFilename() != null
                     ? "-" + file.getOriginalFilename().replaceAll("[/\\\\]", "_")
                     : null;
-            Path tempFile = Files.createTempFile(prefix, suffix);
+            Path tempFile = TempFiles.createSecureTempFile(prefix, suffix);
             file.transferTo(tempFile);
             return tempFile;
         } catch (IOException e) {

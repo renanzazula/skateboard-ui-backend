@@ -7,6 +7,7 @@ import com.skateboard.uibackend.client.user.generated.model.ProblemReportRequest
 import com.skateboard.uibackend.client.user.generated.model.ProblemReportResponse;
 import com.skateboard.uibackend.client.user.generated.model.UpdateUserRequest;
 import com.skateboard.uibackend.client.user.generated.model.UserResponse;
+import com.skateboard.uibackend.client.support.TempFiles;
 import com.skateboard.uibackend.exception.DownstreamServiceException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -129,7 +130,7 @@ public class UserClient {
             String suffix = file.getOriginalFilename() != null
                     ? "-" + file.getOriginalFilename().replaceAll("[/\\\\]", "_")
                     : null;
-            Path tempFile = Files.createTempFile("profile-picture-", suffix);
+            Path tempFile = TempFiles.createSecureTempFile("profile-picture-", suffix);
             file.transferTo(tempFile);
             return tempFile;
         } catch (IOException e) {

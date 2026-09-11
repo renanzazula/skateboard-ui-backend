@@ -16,6 +16,7 @@ import com.skateboard.uibackend.client.appconfig.generated.model.PublicConfigRes
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdateAboutPageRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdateHomeFeaturedPlayerConfigRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdateLoginTextRequest;
+import com.skateboard.uibackend.client.support.TempFiles;
 import com.skateboard.uibackend.exception.DownstreamServiceException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -267,7 +268,7 @@ public class AppConfigClient {
             String suffix = file.getOriginalFilename() != null
                     ? "-" + file.getOriginalFilename().replaceAll("[/\\\\]", "_")
                     : null;
-            Path tempFile = Files.createTempFile(prefix, suffix);
+            Path tempFile = TempFiles.createSecureTempFile(prefix, suffix);
             file.transferTo(tempFile);
             return tempFile;
         } catch (IOException e) {
