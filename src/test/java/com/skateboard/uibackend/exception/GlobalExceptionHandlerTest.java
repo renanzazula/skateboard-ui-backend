@@ -1,7 +1,11 @@
 package com.skateboard.uibackend.exception;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
 import org.apache.catalina.connector.ClientAbortException;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -17,6 +21,25 @@ import static org.assertj.core.api.Assertions.assertThat;
 class GlobalExceptionHandlerTest {
 
     private final GlobalExceptionHandler handler = new GlobalExceptionHandler();
+
+    private final Logger logger = (Logger) LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    private final Level originalLevel = logger.getLevel();
+
+    @AfterEach
+    void restoreLogLevel() {
+        logger.setLevel(originalLevel);
+    }
+
+    @Test
+    void debugLoggingWalksToTheRootCauseOfANestedClientAbort() {
+        logger.setLevel(Level.DEBUG);
+
+        ResponseEntity<ErrorResponse> response = handler.handleIoException(
+                new ClientAbortException(new RuntimeException("outer", new EOFException("innermost"))));
+
+        assertThat(response.getStatusCode().value()).isEqualTo(499);
+        assertThat(response.getBody()).isNull();
+    }
 
     @Test
     void mapsDownstreamServiceExceptionToItsCarriedStatusAndCode() {
