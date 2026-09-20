@@ -164,6 +164,45 @@ class PodcastFeaturedContentResolverTest {
     }
 
     @Test
+    void propagatesAGenuineDownstreamFailureFromLoadPost() {
+        UUID id = UUID.randomUUID();
+        when(podcastClient.getById(id)).thenThrow(
+                new DownstreamServiceException(HttpStatus.SERVICE_UNAVAILABLE, "PODCAST_SERVICE_UNAVAILABLE", "down"));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> resolver.resolve(id.toString(), null))
+                .isInstanceOf(DownstreamServiceException.class);
+    }
+
+    @Test
+    void explicitSpotifyPreferenceIsHonoredWhenBothPlatformsAreAvailable() {
+        UUID id = UUID.randomUUID();
+        PostResponse post = new PostResponse()
+                .id(id).title("Episode 1").status(PostResponse.StatusEnum.PUBLISHED)
+                .platforms(List.of(
+                        new PostPlatformResponse().platform(PostPlatformResponse.PlatformEnum.YOUTUBE).externalUrl("https://youtube.com/watch?v=x"),
+                        new PostPlatformResponse().platform(PostPlatformResponse.PlatformEnum.SPOTIFY).externalUrl("https://open.spotify.com/episode/abc")));
+        when(podcastClient.getById(id)).thenReturn(post);
+
+        HomeFeaturedPlayerResponse result = resolver.resolve(id.toString(), "SPOTIFY");
+
+        assertThat(result.playback().type()).isEqualTo("SPOTIFY_EMBED");
+    }
+
+    @Test
+    void findPlatformReturnsNullWhenThePostHasNoPlatformsList() {
+        UUID id = UUID.randomUUID();
+        PostResponse post = new PostResponse()
+                .id(id).title("Legacy episode").status(PostResponse.StatusEnum.PUBLISHED)
+                .youtubeUrl("https://youtube.com/watch?v=legacy");
+        when(podcastClient.getById(id)).thenReturn(post);
+
+        HomeFeaturedPlayerResponse result = resolver.resolve(id.toString(), null);
+
+        assertThat(result.playback().type()).isEqualTo("YOUTUBE");
+        assertThat(result.playback().reference()).isEqualTo("https://youtube.com/watch?v=legacy");
+    }
+
+    @Test
     void unavailablePreferredPlatformFallsBackToWhicheverIsAvailable() {
         UUID id = UUID.randomUUID();
         PostResponse post = new PostResponse()

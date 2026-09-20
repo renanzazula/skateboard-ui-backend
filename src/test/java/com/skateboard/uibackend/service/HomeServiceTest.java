@@ -109,6 +109,18 @@ class HomeServiceTest {
     }
 
     @Test
+    void selectedModePropagatesANonNotFoundDownstreamFailure() {
+        when(appConfigClient.getHomeVideoCategoryConfig()).thenReturn(new HomeVideoCategoryConfigResponse()
+                .mode(HomeVideoCategoryConfigMode.SELECTED).enabledCategoryIds(List.of("podcasts")));
+
+        when(podcastClient.getCategoryPosts(eq("podcasts"), eq(0), anyInt()))
+                .thenThrow(new DownstreamServiceException(HttpStatus.SERVICE_UNAVAILABLE, "PODCAST_SERVICE_UNAVAILABLE", "down"));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.getVideos())
+                .isInstanceOf(DownstreamServiceException.class);
+    }
+
+    @Test
     void fallsBackToAllWhenTheConfigServiceIsUnavailable() {
         when(appConfigClient.getHomeVideoCategoryConfig())
                 .thenThrow(new DownstreamServiceException(HttpStatus.SERVICE_UNAVAILABLE, "APP_CONFIG_SERVICE_UNAVAILABLE", "down"));
