@@ -11,7 +11,10 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
@@ -28,6 +31,18 @@ import org.springframework.security.web.SecurityFilterChain;
  * "authorities" claim, matching skateboard-podcast-be's realm-role mapper, so
  * {@code @PreAuthorize("hasAuthority('FUNC_...')")} on the controllers works
  * against the same permission strings used downstream.
+ * <p>
+ * The issuer check is the one piece that is easy to leave out here and costly
+ * to leave out. {@code NimbusJwtDecoder.build()} installs only
+ * {@link JwtValidators#createDefault()} — timestamps, nothing else — so a
+ * decoder built without an explicit validator accepts any token its JWKS can
+ * verify, whatever the "iss" claim says. Two Keycloak deployments fronting one
+ * database serve the same realm keys under different hostnames, which makes
+ * that gap invisible: the BFF admits a token minted by the other host, relays
+ * it, and the three downstream services reject it on issuer, so a plain
+ * hostname mismatch surfaces as a 401 from a data route rather than as a
+ * failed authentication at the edge. Validating the issuer here keeps this
+ * service's gate identical to the ones it fronts.
  * <p>
  * The JWKS URI is built directly from {@code issuerUri} (Keycloak's stable
  * {@code /protocol/openid-connect/certs} convention) instead of doing OIDC
@@ -84,7 +99,20 @@ public class SecurityConfig {
     }
 
     private JwtDecoder jwtDecoder() {
-        return NimbusJwtDecoder.withJwkSetUri(issuerUri + "/protocol/openid-connect/certs").build();
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(issuerUri + "/protocol/openid-connect/certs").build();
+        decoder.setJwtValidator(jwtValidator(issuerUri));
+        return decoder;
+    }
+
+    /**
+     * Timestamps plus issuer, the same pair skateboard-podcast-be,
+     * skateboard-user-be and skateboard-app-config-be apply (they add an
+     * {@code AudienceValidator} on top; this service has no audience of its
+     * own). Package-private so {@code SecurityConfigTest} can exercise it
+     * without a signing key or a live JWKS endpoint.
+     */
+    static OAuth2TokenValidator<Jwt> jwtValidator(String issuerUri) {
+        return JwtValidators.createDefaultWithIssuer(issuerUri);
     }
 
     private JwtAuthenticationConverter jwtAuthenticationConverter() {
