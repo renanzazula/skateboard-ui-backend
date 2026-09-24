@@ -2,6 +2,7 @@ package com.skateboard.uibackend.controller;
 
 import com.skateboard.uibackend.client.notification.generated.model.DeviceResponse;
 import com.skateboard.uibackend.client.notification.generated.model.NotificationPreferencesResponse;
+import com.skateboard.uibackend.client.notification.generated.model.TestNotificationResponse;
 import com.skateboard.uibackend.config.SecurityConfig;
 import com.skateboard.uibackend.service.NotificationService;
 import com.skateboard.uibackend.web.RestAuthenticationEntryPoint;
@@ -19,6 +20,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -79,6 +81,32 @@ class NotificationControllerSecurityTest {
         mockMvc.perform(delete("/api/me/devices/install-1")
                         .with(jwt().authorities(() -> "FUNC_NOTIFICATION_DEVICE_MANAGE")))
                 .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void testNotificationRequiresAToken() throws Exception {
+        mockMvc.perform(post("/api/me/notifications/test"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
+    }
+
+    @Test
+    void testNotificationRejectsATokenMissingTheDeviceAuthority() throws Exception {
+        mockMvc.perform(post("/api/me/notifications/test")
+                        .with(jwt().authorities(() -> "FUNC_USER_SELF_READ")))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"));
+    }
+
+    @Test
+    void deviceManageAuthorityAllowsSendingATestNotification() throws Exception {
+        given(notificationService.sendTestNotification())
+                .willReturn(new TestNotificationResponse().devicesTargeted(1).sent(1));
+
+        mockMvc.perform(post("/api/me/notifications/test")
+                        .with(jwt().authorities(() -> "FUNC_NOTIFICATION_DEVICE_MANAGE")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sent").value(1));
     }
 
     @Test

@@ -122,6 +122,44 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /test-notification:
+    post:
+      tags: [devices]
+      operationId: sendTestNotification
+      summary: Send a test push to the caller's own devices
+      description: >
+        Diagnostic only. Sends a fixed "test notification" to every enabled
+        device registered by the caller — never to anyone else, since the user
+        is taken from the JWT and nothing addressing a recipient is read from
+        the request. Preferences are deliberately ignored: this is how a user
+        checks that delivery works, and a muted type would make it report a
+        misleading "nothing sent". The notification is recorded like any other,
+        so its deliveries are retried and receipt-polled; the response is the
+        immediate provider answer, not final delivery.
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_NOTIFICATION_DEVICE_MANAGE
+      responses:
+        '200':
+          description: What the push provider said about each of the caller's devices
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestNotificationResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Missing required permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /preferences:
     get:
       tags: [preferences]
@@ -196,7 +234,11 @@ components:
 
     RegisterDeviceRequest:
       type: object
-      required: [platform, provider, pushToken]
+      # provider is optional on purpose. Which push service delivers the token
+      # is this platform's decision, not something a client should have to
+      # restate on every call, and requiring it would 400 any build that
+      # predates it being added. Absent means EXPO.
+      required: [platform, pushToken]
       properties:
         platform:
           type: string
@@ -205,6 +247,7 @@ components:
           type: string
           enum: [EXPO]
           default: EXPO
+          nullable: true
         pushToken:
           type: string
           maxLength: 500
@@ -252,6 +295,26 @@ components:
           format: date-time
       # pushToken is deliberately never returned: it is a delivery credential,
       # and the client already knows the one it just sent.
+
+    TestNotificationResponse:
+      type: object
+      required: [devicesTargeted, sent, retryable, failed, invalidTokens]
+      properties:
+        devicesTargeted:
+          type: integer
+          description: Enabled devices registered by the caller. 0 means nothing is registered to send to.
+        sent:
+          type: integer
+          description: Accepted by the push provider (not yet confirmed delivered)
+        retryable:
+          type: integer
+          description: Not accepted yet; the retry pass will try again
+        failed:
+          type: integer
+          description: Permanently rejected by the provider
+        invalidTokens:
+          type: integer
+          description: Token no longer valid; that device has been disabled
 
     # Field names are fixed by the contract skateboard-user-be already served
     # and the mobile Settings screen already consumes — do not rename them.

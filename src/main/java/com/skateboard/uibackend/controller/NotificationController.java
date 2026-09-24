@@ -3,6 +3,7 @@ package com.skateboard.uibackend.controller;
 import com.skateboard.uibackend.client.notification.generated.model.DeviceResponse;
 import com.skateboard.uibackend.client.notification.generated.model.NotificationPreferencesResponse;
 import com.skateboard.uibackend.client.notification.generated.model.RegisterDeviceRequest;
+import com.skateboard.uibackend.client.notification.generated.model.TestNotificationResponse;
 import com.skateboard.uibackend.client.notification.generated.model.UpdateNotificationPreferencesRequest;
 import com.skateboard.uibackend.service.NotificationService;
 import org.springframework.http.HttpStatus;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -54,6 +56,17 @@ public class NotificationController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void removeDevice(@PathVariable String deviceIdentifier) {
         notificationService.removeDevice(deviceIdentifier);
+    }
+
+    /**
+     * Downstream path is {@code /test-notification}; exposed under
+     * {@code /api/me/notifications} rather than {@code /api/me/devices} so it
+     * cannot be read as a device identifier.
+     */
+    @PostMapping("/api/me/notifications/test")
+    @PreAuthorize("hasAuthority('FUNC_NOTIFICATION_DEVICE_MANAGE')")
+    public TestNotificationResponse sendTestNotification() {
+        return notificationService.sendTestNotification();
     }
 
     @GetMapping("/api/me/preferences")

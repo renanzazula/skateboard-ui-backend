@@ -770,6 +770,48 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/me/notifications/test:
+    post:
+      tags: [notifications]
+      operationId: sendTestNotification
+      summary: Send a test push to the caller's own devices
+      description: >-
+        Diagnostic. Sends a fixed "Test notification" to every enabled device
+        the caller has registered — never to anyone else; the recipient is the
+        JWT subject. Notification preferences are ignored. The counts are the
+        push provider's immediate answer (accepted, not yet confirmed
+        delivered); devicesTargeted 0 means this account has no registered
+        device to send to.
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_NOTIFICATION_DEVICE_MANAGE
+      responses:
+        '200':
+          description: Provider outcome per device
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestNotificationResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Missing required permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Notification service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/me/profile-picture:
     post:
       tags: [me]
@@ -2784,6 +2826,21 @@ components:
         deviceName:
           type: string
           nullable: true
+
+    TestNotificationResponse:
+      type: object
+      required: [devicesTargeted, sent, retryable, failed, invalidTokens]
+      properties:
+        devicesTargeted:
+          type: integer
+        sent:
+          type: integer
+        retryable:
+          type: integer
+        failed:
+          type: integer
+        invalidTokens:
+          type: integer
 
     DeviceResponse:
       type: object
