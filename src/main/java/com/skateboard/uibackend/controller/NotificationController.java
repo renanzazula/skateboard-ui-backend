@@ -61,10 +61,12 @@ public class NotificationController {
     /**
      * Downstream path is {@code /test-notification}; exposed under
      * {@code /api/me/notifications} rather than {@code /api/me/devices} so it
-     * cannot be read as a device identifier.
+     * cannot be read as a device identifier. Admin-only: the test authority is
+     * separate from the self-service FUNC_NOTIFICATION_DEVICE_MANAGE every
+     * STANDARD user holds.
      */
     @PostMapping("/api/me/notifications/test")
-    @PreAuthorize("hasAuthority('FUNC_NOTIFICATION_DEVICE_MANAGE')")
+    @PreAuthorize("hasAuthority('FUNC_NOTIFICATION_DEVICE_MANAGE_TEST')")
     public TestNotificationResponse sendTestNotification() {
         return notificationService.sendTestNotification();
     }

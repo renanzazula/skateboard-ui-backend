@@ -776,7 +776,8 @@ paths:
       operationId: sendTestNotification
       summary: Send a test push to the caller's own devices
       description: >-
-        Diagnostic. Sends a fixed "Test notification" to every enabled device
+        Admin-only diagnostic (FUNC_NOTIFICATION_DEVICE_MANAGE_TEST is granted
+        to ADMIN, not STANDARD). Sends a fixed "Test notification" to every enabled device
         the caller has registered — never to anyone else; the recipient is the
         JWT subject. Notification preferences are ignored. The counts are the
         push provider's immediate answer (accepted, not yet confirmed
@@ -785,7 +786,7 @@ paths:
       security:
         - bearerAuth: []
       x-required-permissions:
-        - FUNC_NOTIFICATION_DEVICE_MANAGE
+        - FUNC_NOTIFICATION_DEVICE_MANAGE_TEST
       responses:
         '200':
           description: Provider outcome per device

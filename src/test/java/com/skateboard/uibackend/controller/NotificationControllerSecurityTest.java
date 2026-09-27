@@ -91,20 +91,20 @@ class NotificationControllerSecurityTest {
     }
 
     @Test
-    void testNotificationRejectsATokenMissingTheDeviceAuthority() throws Exception {
+    void testNotificationRejectsTheSelfServiceDeviceAuthorityAlone() throws Exception {
         mockMvc.perform(post("/api/me/notifications/test")
-                        .with(jwt().authorities(() -> "FUNC_USER_SELF_READ")))
+                        .with(jwt().authorities(() -> "FUNC_NOTIFICATION_DEVICE_MANAGE")))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("FORBIDDEN"));
     }
 
     @Test
-    void deviceManageAuthorityAllowsSendingATestNotification() throws Exception {
+    void deviceManageTestAuthorityAllowsSendingATestNotification() throws Exception {
         given(notificationService.sendTestNotification())
                 .willReturn(new TestNotificationResponse().devicesTargeted(1).sent(1));
 
         mockMvc.perform(post("/api/me/notifications/test")
-                        .with(jwt().authorities(() -> "FUNC_NOTIFICATION_DEVICE_MANAGE")))
+                        .with(jwt().authorities(() -> "FUNC_NOTIFICATION_DEVICE_MANAGE_TEST")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.sent").value(1));
     }
