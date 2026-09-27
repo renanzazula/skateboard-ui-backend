@@ -5,6 +5,7 @@ import com.skateboard.uibackend.client.notification.generated.api.PreferencesApi
 import com.skateboard.uibackend.client.notification.generated.model.DeviceResponse;
 import com.skateboard.uibackend.client.notification.generated.model.NotificationPreferencesResponse;
 import com.skateboard.uibackend.client.notification.generated.model.RegisterDeviceRequest;
+import com.skateboard.uibackend.client.notification.generated.model.TestNotificationResponse;
 import com.skateboard.uibackend.client.notification.generated.model.UpdateNotificationPreferencesRequest;
 import com.skateboard.uibackend.exception.DownstreamServiceException;
 import org.springframework.http.HttpStatus;
@@ -48,6 +49,10 @@ public class NotificationClient {
 
     public void removeDevice(String deviceIdentifier) {
         call(() -> devicesApi.removeDevice(deviceIdentifier));
+    }
+
+    public TestNotificationResponse sendTestNotification() {
+        return call(devicesApi::sendTestNotification);
     }
 
     public NotificationPreferencesResponse getNotificationPreferences() {

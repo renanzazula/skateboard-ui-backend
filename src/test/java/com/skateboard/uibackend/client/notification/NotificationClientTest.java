@@ -4,6 +4,7 @@ import com.skateboard.uibackend.client.notification.generated.api.DevicesApi;
 import com.skateboard.uibackend.client.notification.generated.api.PreferencesApi;
 import com.skateboard.uibackend.client.notification.generated.model.DeviceResponse;
 import com.skateboard.uibackend.client.notification.generated.model.NotificationPreferencesResponse;
+import com.skateboard.uibackend.client.notification.generated.model.TestNotificationResponse;
 import com.skateboard.uibackend.client.notification.generated.model.RegisterDeviceRequest;
 import com.skateboard.uibackend.client.notification.generated.model.UpdateNotificationPreferencesRequest;
 import com.skateboard.uibackend.exception.DownstreamServiceException;
@@ -66,6 +67,14 @@ class NotificationClientTest {
         when(devicesApi.removeDevice("device-1")).thenReturn(Mono.empty());
 
         client.removeDevice("device-1");
+    }
+
+    @Test
+    void sendTestNotificationPassesThrough() {
+        TestNotificationResponse response = new TestNotificationResponse();
+        when(devicesApi.sendTestNotification()).thenReturn(Mono.just(response));
+
+        assertThat(client.sendTestNotification()).isSameAs(response);
     }
 
     @Test

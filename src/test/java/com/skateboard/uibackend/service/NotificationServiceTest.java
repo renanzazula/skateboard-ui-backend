@@ -3,6 +3,7 @@ package com.skateboard.uibackend.service;
 import com.skateboard.uibackend.client.notification.NotificationClient;
 import com.skateboard.uibackend.client.notification.generated.model.DeviceResponse;
 import com.skateboard.uibackend.client.notification.generated.model.NotificationPreferencesResponse;
+import com.skateboard.uibackend.client.notification.generated.model.TestNotificationResponse;
 import com.skateboard.uibackend.client.notification.generated.model.RegisterDeviceRequest;
 import com.skateboard.uibackend.client.notification.generated.model.UpdateNotificationPreferencesRequest;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,6 +46,14 @@ class NotificationServiceTest {
         service.removeDevice("device-1");
 
         verify(notificationClient).removeDevice("device-1");
+    }
+
+    @Test
+    void sendTestNotificationDelegates() {
+        TestNotificationResponse response = new TestNotificationResponse();
+        when(notificationClient.sendTestNotification()).thenReturn(response);
+
+        assertThat(service.sendTestNotification()).isSameAs(response);
     }
 
     @Test

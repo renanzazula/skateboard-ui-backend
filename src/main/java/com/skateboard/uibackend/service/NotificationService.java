@@ -4,6 +4,7 @@ import com.skateboard.uibackend.client.notification.NotificationClient;
 import com.skateboard.uibackend.client.notification.generated.model.DeviceResponse;
 import com.skateboard.uibackend.client.notification.generated.model.NotificationPreferencesResponse;
 import com.skateboard.uibackend.client.notification.generated.model.RegisterDeviceRequest;
+import com.skateboard.uibackend.client.notification.generated.model.TestNotificationResponse;
 import com.skateboard.uibackend.client.notification.generated.model.UpdateNotificationPreferencesRequest;
 import org.springframework.stereotype.Service;
 
@@ -27,6 +28,10 @@ public class NotificationService {
 
     public void removeDevice(String deviceIdentifier) {
         notificationClient.removeDevice(deviceIdentifier);
+    }
+
+    public TestNotificationResponse sendTestNotification() {
+        return notificationClient.sendTestNotification();
     }
 
     public NotificationPreferencesResponse getNotificationPreferences() {
