@@ -1,8 +1,12 @@
 package com.skateboard.uibackend.client.notification;
 
 import com.skateboard.uibackend.client.notification.generated.api.DevicesApi;
+import com.skateboard.uibackend.client.notification.generated.api.InboxApi;
 import com.skateboard.uibackend.client.notification.generated.api.PreferencesApi;
 import com.skateboard.uibackend.client.notification.generated.model.DeviceResponse;
+import com.skateboard.uibackend.client.notification.generated.model.InboxPageResponse;
+import com.skateboard.uibackend.client.notification.generated.model.MarkAllReadRequest;
+import com.skateboard.uibackend.client.notification.generated.model.UnreadCountResponse;
 import com.skateboard.uibackend.client.notification.generated.model.NotificationPreferencesResponse;
 import com.skateboard.uibackend.client.notification.generated.model.TestNotificationResponse;
 import com.skateboard.uibackend.client.notification.generated.model.RegisterDeviceRequest;
@@ -21,10 +25,14 @@ import reactor.core.publisher.Mono;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.notNull;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -40,12 +48,15 @@ class NotificationClientTest {
     @Mock
     private PreferencesApi preferencesApi;
 
+    @Mock
+    private InboxApi inboxApi;
+
     private NotificationClient client;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        client = new NotificationClient(devicesApi, preferencesApi);
+        client = new NotificationClient(devicesApi, preferencesApi, inboxApi);
     }
 
     private static WebClientResponseException responseException(HttpStatus status) {
@@ -152,5 +163,53 @@ class NotificationClientTest {
                 .isInstanceOf(DownstreamServiceException.class)
                 .satisfies(t -> assertThat(((DownstreamServiceException) t).getCode())
                         .isEqualTo("NOTIFICATION_SERVICE_UNAVAILABLE"));
+    }
+
+    @Test
+    void listInboxPassesThrough() {
+        InboxPageResponse response = new InboxPageResponse();
+        when(inboxApi.listInbox(1, 20)).thenReturn(Mono.just(response));
+
+        assertThat(client.listInbox(1, 20)).isSameAs(response);
+    }
+
+    @Test
+    void getInboxUnreadCountPassesThrough() {
+        UnreadCountResponse response = new UnreadCountResponse().count(6L);
+        when(inboxApi.getInboxUnreadCount()).thenReturn(Mono.just(response));
+
+        assertThat(client.getInboxUnreadCount()).isSameAs(response);
+    }
+
+    @Test
+    void markInboxNotificationReadMapsANotFound() {
+        UUID id = UUID.randomUUID();
+        when(inboxApi.markInboxNotificationRead(id)).thenReturn(Mono.error(responseException(HttpStatus.NOT_FOUND)));
+
+        DownstreamServiceException ex = catchThrowableOfType(
+                () -> client.markInboxNotificationRead(id), DownstreamServiceException.class);
+
+        assertThat(ex.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(ex.getCode()).isEqualTo("NOTIFICATION_NOT_FOUND");
+    }
+
+    /** The downstream route consumes JSON only, so a missing body must still be sent as {}. */
+    @Test
+    void markAllInboxNotificationsReadAlwaysSendsABody() {
+        when(inboxApi.markAllInboxNotificationsRead(any())).thenReturn(Mono.empty());
+
+        client.markAllInboxNotificationsRead(null);
+
+        verify(inboxApi).markAllInboxNotificationsRead(notNull());
+    }
+
+    @Test
+    void markAllInboxNotificationsReadPassesTheCutOffThrough() {
+        MarkAllReadRequest request = new MarkAllReadRequest();
+        when(inboxApi.markAllInboxNotificationsRead(request)).thenReturn(Mono.empty());
+
+        client.markAllInboxNotificationsRead(request);
+
+        verify(inboxApi).markAllInboxNotificationsRead(request);
     }
 }

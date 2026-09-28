@@ -2,6 +2,9 @@ package com.skateboard.uibackend.service;
 
 import com.skateboard.uibackend.client.notification.NotificationClient;
 import com.skateboard.uibackend.client.notification.generated.model.DeviceResponse;
+import com.skateboard.uibackend.client.notification.generated.model.InboxPageResponse;
+import com.skateboard.uibackend.client.notification.generated.model.MarkAllReadRequest;
+import com.skateboard.uibackend.client.notification.generated.model.UnreadCountResponse;
 import com.skateboard.uibackend.client.notification.generated.model.NotificationPreferencesResponse;
 import com.skateboard.uibackend.client.notification.generated.model.TestNotificationResponse;
 import com.skateboard.uibackend.client.notification.generated.model.RegisterDeviceRequest;
@@ -10,6 +13,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
@@ -71,5 +76,39 @@ class NotificationServiceTest {
         when(notificationClient.updateNotificationPreferences(request)).thenReturn(response);
 
         assertThat(service.updateNotificationPreferences(request)).isSameAs(response);
+    }
+
+    @Test
+    void listInboxDelegates() {
+        InboxPageResponse response = new InboxPageResponse();
+        when(notificationClient.listInbox(0, 20)).thenReturn(response);
+
+        assertThat(service.listInbox(0, 20)).isSameAs(response);
+    }
+
+    @Test
+    void getInboxUnreadCountDelegates() {
+        UnreadCountResponse response = new UnreadCountResponse();
+        when(notificationClient.getInboxUnreadCount()).thenReturn(response);
+
+        assertThat(service.getInboxUnreadCount()).isSameAs(response);
+    }
+
+    @Test
+    void markInboxNotificationReadDelegates() {
+        UUID id = UUID.randomUUID();
+
+        service.markInboxNotificationRead(id);
+
+        verify(notificationClient).markInboxNotificationRead(id);
+    }
+
+    @Test
+    void markAllInboxNotificationsReadDelegates() {
+        MarkAllReadRequest request = new MarkAllReadRequest();
+
+        service.markAllInboxNotificationsRead(request);
+
+        verify(notificationClient).markAllInboxNotificationsRead(request);
     }
 }

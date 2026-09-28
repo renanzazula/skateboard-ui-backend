@@ -10,6 +10,8 @@ Four downstream services exist: `../skateboard-podcast-be`, `../skateboard-user-
 
 `/api/me/preferences` is served by `NotificationController` against `skateboard-notification-be`, not by `UserController` against `skateboard-user-be`, which owned notification preferences until that service existed. The route, the DTO shape and the `FUNC_USER_SELF_READ`/`FUNC_USER_SELF_UPDATE` authorities are all unchanged — only what stands behind them moved — which is why the mobile settings screen needed no change. `skateboard-user-be` still exposes its own copy; nothing calls it.
 
+`/api/me/notifications/**` (list, `unread-count`, `{notificationId}/read`, `read-all`) is also on `NotificationController`, proxying notification-be's `/inbox/**` for the Home bell. It uses the same `FUNC_USER_SELF_READ`/`FUNC_USER_SELF_UPDATE` authorities as preferences, so it needed no realm change. `NotificationClient.markAllInboxNotificationsRead` always sends a JSON body (`{}` when the caller sent none), because the downstream route only consumes `application/json`.
+
 `HomeController` (`/api/home/**`) is the one place this BFF actually aggregates instead of passing through: see **Home dashboard aggregation** below.
 
 ## Build & run

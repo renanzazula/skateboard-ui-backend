@@ -2,11 +2,16 @@ package com.skateboard.uibackend.service;
 
 import com.skateboard.uibackend.client.notification.NotificationClient;
 import com.skateboard.uibackend.client.notification.generated.model.DeviceResponse;
+import com.skateboard.uibackend.client.notification.generated.model.InboxPageResponse;
+import com.skateboard.uibackend.client.notification.generated.model.MarkAllReadRequest;
 import com.skateboard.uibackend.client.notification.generated.model.NotificationPreferencesResponse;
 import com.skateboard.uibackend.client.notification.generated.model.RegisterDeviceRequest;
 import com.skateboard.uibackend.client.notification.generated.model.TestNotificationResponse;
+import com.skateboard.uibackend.client.notification.generated.model.UnreadCountResponse;
 import com.skateboard.uibackend.client.notification.generated.model.UpdateNotificationPreferencesRequest;
 import org.springframework.stereotype.Service;
+
+import java.util.UUID;
 
 /**
  * Thin pass-through today — the seam where orchestration across downstream
@@ -41,5 +46,21 @@ public class NotificationService {
     public NotificationPreferencesResponse updateNotificationPreferences(
             UpdateNotificationPreferencesRequest request) {
         return notificationClient.updateNotificationPreferences(request);
+    }
+
+    public InboxPageResponse listInbox(Integer page, Integer size) {
+        return notificationClient.listInbox(page, size);
+    }
+
+    public UnreadCountResponse getInboxUnreadCount() {
+        return notificationClient.getInboxUnreadCount();
+    }
+
+    public void markInboxNotificationRead(UUID notificationId) {
+        notificationClient.markInboxNotificationRead(notificationId);
+    }
+
+    public void markAllInboxNotificationsRead(MarkAllReadRequest request) {
+        notificationClient.markAllInboxNotificationsRead(request);
     }
 }

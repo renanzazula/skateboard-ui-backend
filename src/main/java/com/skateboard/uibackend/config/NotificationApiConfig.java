@@ -1,6 +1,7 @@
 package com.skateboard.uibackend.config;
 
 import com.skateboard.uibackend.client.notification.generated.api.DevicesApi;
+import com.skateboard.uibackend.client.notification.generated.api.InboxApi;
 import com.skateboard.uibackend.client.notification.generated.api.PreferencesApi;
 import com.skateboard.uibackend.client.notification.generated.invoker.ApiClient;
 import com.skateboard.uibackend.web.BearerTokenExchangeFilter;
@@ -15,7 +16,7 @@ import reactor.netty.http.client.HttpClient;
 import java.time.Duration;
 
 /**
- * Wires the openapi-generator-produced {@link DevicesApi}/{@link PreferencesApi}
+ * Wires the openapi-generator-produced {@link DevicesApi}/{@link PreferencesApi}/{@link InboxApi}
  * (generated from api/notification-openapi.yaml's "devices"/"preferences" tags)
  * to a WebClient configured with skateboard-notification-be's base
  * URL/timeouts and the two cross-cutting filters (bearer token relay,
@@ -58,5 +59,10 @@ public class NotificationApiConfig {
     @Bean
     public PreferencesApi notificationPreferencesApi(ApiClient notificationApiClient) {
         return new PreferencesApi(notificationApiClient);
+    }
+
+    @Bean
+    public InboxApi notificationInboxApi(ApiClient notificationApiClient) {
+        return new InboxApi(notificationApiClient);
     }
 }
