@@ -770,6 +770,197 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/me/notifications:
+    get:
+      tags: [notifications]
+      operationId: listNotificationInbox
+      summary: The caller's notifications, newest first
+      description: >-
+        Backs the Notifications screen opened from the Home bell. Offset paging
+        with no total: keep requesting the next page while hasMore is true.
+        Every notification the caller received is listed, including types
+        whose push they muted.
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_USER_SELF_READ
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+      responses:
+        '200':
+          description: One page of notifications
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InboxPageResponse'
+        '400':
+          description: Invalid paging parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Missing required permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Notification service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/me/notifications/unread-count:
+    get:
+      tags: [notifications]
+      operationId: getNotificationUnreadCount
+      summary: How many of the caller's notifications are unread
+      description: The badge on the Home bell.
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_USER_SELF_READ
+      responses:
+        '200':
+          description: Unread count
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnreadCountResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Missing required permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Notification service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/me/notifications/{notificationId}/read:
+    post:
+      tags: [notifications]
+      operationId: markNotificationRead
+      summary: Mark one of the caller's notifications as read
+      description: >-
+        Idempotent. notificationId is the inbox item's id, and also the
+        notificationId field in a push's data payload.
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_USER_SELF_UPDATE
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Marked read
+        '400':
+          description: notificationId is not a UUID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Missing required permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: The caller has no such notification
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Notification service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/me/notifications/read-all:
+    post:
+      tags: [notifications]
+      operationId: markAllNotificationsRead
+      summary: Mark every unread notification as read
+      description: >-
+        Send before = the time the list was loaded, so a notification that
+        arrived after that stays unread. Omitted means now.
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_USER_SELF_UPDATE
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MarkAllReadRequest'
+      responses:
+        '204':
+          description: Marked read
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Missing required permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Notification service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/me/notifications/test:
     post:
       tags: [notifications]
@@ -2826,6 +3017,71 @@ components:
           nullable: true
         deviceName:
           type: string
+          nullable: true
+
+    InboxItem:
+      type: object
+      required: [notificationId, type, title, body, data, createdAt, read]
+      properties:
+        notificationId:
+          type: string
+          format: uuid
+        type:
+          type: string
+          description: Notification type, e.g. NEW_PODCAST
+        title:
+          type: string
+        body:
+          type: string
+        imageUrl:
+          type: string
+          nullable: true
+        data:
+          type: object
+          description: >-
+            Navigation metadata, the same as the push carried
+            ({targetType, targetId, targetSlug, ...}).
+          additionalProperties:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        readAt:
+          type: string
+          format: date-time
+          nullable: true
+        read:
+          type: boolean
+
+    InboxPageResponse:
+      type: object
+      required: [items, page, size, hasMore]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/InboxItem'
+        page:
+          type: integer
+        size:
+          type: integer
+        hasMore:
+          type: boolean
+
+    UnreadCountResponse:
+      type: object
+      required: [count]
+      properties:
+        count:
+          type: integer
+          format: int64
+
+    MarkAllReadRequest:
+      type: object
+      properties:
+        before:
+          type: string
+          format: date-time
           nullable: true
 
     TestNotificationResponse:

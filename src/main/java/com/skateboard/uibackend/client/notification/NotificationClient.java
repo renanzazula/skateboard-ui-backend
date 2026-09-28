@@ -1,11 +1,15 @@
 package com.skateboard.uibackend.client.notification;
 
 import com.skateboard.uibackend.client.notification.generated.api.DevicesApi;
+import com.skateboard.uibackend.client.notification.generated.api.InboxApi;
 import com.skateboard.uibackend.client.notification.generated.api.PreferencesApi;
 import com.skateboard.uibackend.client.notification.generated.model.DeviceResponse;
+import com.skateboard.uibackend.client.notification.generated.model.InboxPageResponse;
+import com.skateboard.uibackend.client.notification.generated.model.MarkAllReadRequest;
 import com.skateboard.uibackend.client.notification.generated.model.NotificationPreferencesResponse;
 import com.skateboard.uibackend.client.notification.generated.model.RegisterDeviceRequest;
 import com.skateboard.uibackend.client.notification.generated.model.TestNotificationResponse;
+import com.skateboard.uibackend.client.notification.generated.model.UnreadCountResponse;
 import com.skateboard.uibackend.client.notification.generated.model.UpdateNotificationPreferencesRequest;
 import com.skateboard.uibackend.exception.DownstreamServiceException;
 import org.springframework.http.HttpStatus;
@@ -15,6 +19,7 @@ import org.springframework.web.reactive.function.client.WebClientRequestExceptio
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 
+import java.util.UUID;
 import java.util.function.Supplier;
 
 /**
@@ -37,10 +42,13 @@ public class NotificationClient {
 
     private final DevicesApi devicesApi;
     private final PreferencesApi preferencesApi;
+    private final InboxApi inboxApi;
 
-    public NotificationClient(DevicesApi notificationDevicesApi, PreferencesApi notificationPreferencesApi) {
+    public NotificationClient(DevicesApi notificationDevicesApi, PreferencesApi notificationPreferencesApi,
+                              InboxApi notificationInboxApi) {
         this.devicesApi = notificationDevicesApi;
         this.preferencesApi = notificationPreferencesApi;
+        this.inboxApi = notificationInboxApi;
     }
 
     public DeviceResponse registerDevice(String deviceIdentifier, RegisterDeviceRequest request) {
@@ -62,6 +70,27 @@ public class NotificationClient {
     public NotificationPreferencesResponse updateNotificationPreferences(
             UpdateNotificationPreferencesRequest request) {
         return call(() -> preferencesApi.updateNotificationPreferences(request));
+    }
+
+    public InboxPageResponse listInbox(Integer page, Integer size) {
+        return call(() -> inboxApi.listInbox(page, size));
+    }
+
+    public UnreadCountResponse getInboxUnreadCount() {
+        return call(inboxApi::getInboxUnreadCount);
+    }
+
+    public void markInboxNotificationRead(UUID notificationId) {
+        call(() -> inboxApi.markInboxNotificationRead(notificationId));
+    }
+
+    /**
+     * Always sends a body, even an empty one: the downstream route consumes
+     * application/json only, and a bodiless POST would be rejected there.
+     */
+    public void markAllInboxNotificationsRead(MarkAllReadRequest request) {
+        MarkAllReadRequest body = request == null ? new MarkAllReadRequest() : request;
+        call(() -> inboxApi.markAllInboxNotificationsRead(body));
     }
 
     private <T> T call(Supplier<Mono<T>> invocation) {

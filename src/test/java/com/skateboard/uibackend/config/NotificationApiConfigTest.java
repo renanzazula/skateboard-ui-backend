@@ -1,6 +1,7 @@
 package com.skateboard.uibackend.config;
 
 import com.skateboard.uibackend.client.notification.generated.api.DevicesApi;
+import com.skateboard.uibackend.client.notification.generated.api.InboxApi;
 import com.skateboard.uibackend.client.notification.generated.api.PreferencesApi;
 import com.skateboard.uibackend.client.notification.generated.invoker.ApiClient;
 import com.skateboard.uibackend.web.BearerTokenExchangeFilter;
@@ -34,5 +35,6 @@ class NotificationApiConfigTest {
 
         assertThat(config.notificationDevicesApi(apiClient)).isInstanceOf(DevicesApi.class);
         assertThat(config.notificationPreferencesApi(apiClient)).isInstanceOf(PreferencesApi.class);
+        assertThat(config.notificationInboxApi(apiClient)).isInstanceOf(InboxApi.class);
     }
 }

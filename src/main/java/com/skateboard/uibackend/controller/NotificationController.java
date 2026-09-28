@@ -1,9 +1,12 @@
 package com.skateboard.uibackend.controller;
 
 import com.skateboard.uibackend.client.notification.generated.model.DeviceResponse;
+import com.skateboard.uibackend.client.notification.generated.model.InboxPageResponse;
+import com.skateboard.uibackend.client.notification.generated.model.MarkAllReadRequest;
 import com.skateboard.uibackend.client.notification.generated.model.NotificationPreferencesResponse;
 import com.skateboard.uibackend.client.notification.generated.model.RegisterDeviceRequest;
 import com.skateboard.uibackend.client.notification.generated.model.TestNotificationResponse;
+import com.skateboard.uibackend.client.notification.generated.model.UnreadCountResponse;
 import com.skateboard.uibackend.client.notification.generated.model.UpdateNotificationPreferencesRequest;
 import com.skateboard.uibackend.service.NotificationService;
 import org.springframework.http.HttpStatus;
@@ -15,8 +18,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.UUID;
 
 /**
  * Exposes skateboard-notification-be under {@code /api/me/**}, the BFF-facing
@@ -82,5 +88,37 @@ public class NotificationController {
     public NotificationPreferencesResponse updateNotificationPreferences(
             @RequestBody UpdateNotificationPreferencesRequest request) {
         return notificationService.updateNotificationPreferences(request);
+    }
+
+    /**
+     * The inbox behind the Home bell and the Notifications screen. Downstream
+     * paths are {@code /inbox/**}; same FUNC_USER_SELF_READ/FUNC_USER_SELF_UPDATE
+     * authorities as the preferences routes above.
+     */
+    @GetMapping("/api/me/notifications")
+    @PreAuthorize("hasAuthority('FUNC_USER_SELF_READ')")
+    public InboxPageResponse listInbox(@RequestParam(required = false) Integer page,
+                                       @RequestParam(required = false) Integer size) {
+        return notificationService.listInbox(page, size);
+    }
+
+    @GetMapping("/api/me/notifications/unread-count")
+    @PreAuthorize("hasAuthority('FUNC_USER_SELF_READ')")
+    public UnreadCountResponse getInboxUnreadCount() {
+        return notificationService.getInboxUnreadCount();
+    }
+
+    @PostMapping("/api/me/notifications/{notificationId}/read")
+    @PreAuthorize("hasAuthority('FUNC_USER_SELF_UPDATE')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void markInboxNotificationRead(@PathVariable UUID notificationId) {
+        notificationService.markInboxNotificationRead(notificationId);
+    }
+
+    @PostMapping("/api/me/notifications/read-all")
+    @PreAuthorize("hasAuthority('FUNC_USER_SELF_UPDATE')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void markAllInboxNotificationsRead(@RequestBody(required = false) MarkAllReadRequest request) {
+        notificationService.markAllInboxNotificationsRead(request);
     }
 }
