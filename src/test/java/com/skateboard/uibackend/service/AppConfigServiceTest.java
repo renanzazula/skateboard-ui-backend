@@ -8,10 +8,12 @@ import com.skateboard.uibackend.client.appconfig.generated.model.BrandingConfigR
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeFeaturedPlayerConfigResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeVideoCategoryConfigRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeVideoCategoryConfigResponse;
+import com.skateboard.uibackend.client.appconfig.generated.model.PrivacyPolicyResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.PublicConfigResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdateAboutPageRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdateHomeFeaturedPlayerConfigRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdateLoginTextRequest;
+import com.skateboard.uibackend.client.appconfig.generated.model.UpdatePrivacyPolicyRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -205,5 +207,30 @@ class AppConfigServiceTest {
         when(appConfigClient.uploadAboutUsImage(file)).thenReturn(response);
 
         assertThat(service.uploadAboutUsImage(file)).isSameAs(response);
+    }
+
+    @Test
+    void getPrivacyPolicyDelegates() {
+        PrivacyPolicyResponse response = new PrivacyPolicyResponse();
+        when(appConfigClient.getPrivacyPolicy()).thenReturn(response);
+
+        assertThat(service.getPrivacyPolicy()).isSameAs(response);
+    }
+
+    @Test
+    void getPrivacyPolicyAdminDelegates() {
+        PrivacyPolicyResponse response = new PrivacyPolicyResponse();
+        when(appConfigClient.getPrivacyPolicyAdmin()).thenReturn(response);
+
+        assertThat(service.getPrivacyPolicyAdmin()).isSameAs(response);
+    }
+
+    @Test
+    void updatePrivacyPolicyDelegates() {
+        UpdatePrivacyPolicyRequest request = new UpdatePrivacyPolicyRequest();
+        PrivacyPolicyResponse response = new PrivacyPolicyResponse();
+        when(appConfigClient.updatePrivacyPolicy(request)).thenReturn(response);
+
+        assertThat(service.updatePrivacyPolicy(request)).isSameAs(response);
     }
 }

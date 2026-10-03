@@ -8,10 +8,12 @@ import com.skateboard.uibackend.client.appconfig.generated.model.BrandingConfigR
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeFeaturedPlayerConfigResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeVideoCategoryConfigRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeVideoCategoryConfigResponse;
+import com.skateboard.uibackend.client.appconfig.generated.model.PrivacyPolicyResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.PublicConfigResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdateAboutPageRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdateHomeFeaturedPlayerConfigRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdateLoginTextRequest;
+import com.skateboard.uibackend.client.appconfig.generated.model.UpdatePrivacyPolicyRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -108,5 +110,19 @@ public class AppConfigService {
 
     public AboutImageResponse uploadAboutUsImage(MultipartFile file) {
         return appConfigClient.uploadAboutUsImage(file);
+    }
+
+    /** Null when app-config-be answered 204 (no published page yet). */
+    public PrivacyPolicyResponse getPrivacyPolicy() {
+        return appConfigClient.getPrivacyPolicy();
+    }
+
+    /** Null when app-config-be answered 204 (no page created yet). */
+    public PrivacyPolicyResponse getPrivacyPolicyAdmin() {
+        return appConfigClient.getPrivacyPolicyAdmin();
+    }
+
+    public PrivacyPolicyResponse updatePrivacyPolicy(UpdatePrivacyPolicyRequest request) {
+        return appConfigClient.updatePrivacyPolicy(request);
     }
 }

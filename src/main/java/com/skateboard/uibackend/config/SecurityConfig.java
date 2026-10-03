@@ -81,6 +81,14 @@ public class SecurityConfig {
                         // app logo) — api/app-config-openapi.yaml's "public" tag
                         // carries no x-required-permissions.
                         .requestMatchers(HttpMethod.GET, "/api/config").permitAll()
+                        // The published Privacy Policy must be reachable by app
+                        // reviewers and signed-out users with no JWT at all — the
+                        // App Store / Play Store listing links to it directly.
+                        // Mirrors skateboard-app-config-be's SecurityConfig;
+                        // PrivacyPolicyController's GET carries no @PreAuthorize
+                        // either. Unlike About Us's GET, this bypasses
+                        // authentication entirely, not just a specific authority.
+                        .requestMatchers(HttpMethod.GET, "/api/privacy-policy").permitAll()
                         // Startup campaigns must resolve (and report analytics)
                         // before login — ANONYMOUS/ALL campaigns render pre-auth.
                         // Mirrors skateboard-app-config-be's SecurityConfig; the

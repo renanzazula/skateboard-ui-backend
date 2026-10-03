@@ -4,6 +4,7 @@ import com.skateboard.uibackend.client.appconfig.generated.api.AboutUsApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.AdminApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.HomeApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.HomeFeaturedPlayerApi;
+import com.skateboard.uibackend.client.appconfig.generated.api.PrivacyPolicyApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.PublicApi;
 import com.skateboard.uibackend.client.appconfig.generated.model.AboutImageResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.AboutPageResponse;
@@ -12,10 +13,12 @@ import com.skateboard.uibackend.client.appconfig.generated.model.BrandingConfigR
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeFeaturedPlayerConfigResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeVideoCategoryConfigRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeVideoCategoryConfigResponse;
+import com.skateboard.uibackend.client.appconfig.generated.model.PrivacyPolicyResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.PublicConfigResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdateAboutPageRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdateHomeFeaturedPlayerConfigRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdateLoginTextRequest;
+import com.skateboard.uibackend.client.appconfig.generated.model.UpdatePrivacyPolicyRequest;
 import com.skateboard.uibackend.client.support.TempFiles;
 import com.skateboard.uibackend.exception.DownstreamServiceException;
 import org.springframework.http.HttpStatus;
@@ -55,14 +58,17 @@ public class AppConfigClient {
     private final HomeApi homeApi;
     private final HomeFeaturedPlayerApi homeFeaturedPlayerApi;
     private final AboutUsApi aboutUsApi;
+    private final PrivacyPolicyApi privacyPolicyApi;
 
     public AppConfigClient(PublicApi publicApi, AdminApi adminApi, HomeApi homeApi,
-                           HomeFeaturedPlayerApi homeFeaturedPlayerApi, AboutUsApi aboutUsApi) {
+                           HomeFeaturedPlayerApi homeFeaturedPlayerApi, AboutUsApi aboutUsApi,
+                           PrivacyPolicyApi privacyPolicyApi) {
         this.publicApi = publicApi;
         this.adminApi = adminApi;
         this.homeApi = homeApi;
         this.homeFeaturedPlayerApi = homeFeaturedPlayerApi;
         this.aboutUsApi = aboutUsApi;
+        this.privacyPolicyApi = privacyPolicyApi;
     }
 
     public PublicConfigResponse getPublicConfig() {
@@ -171,6 +177,22 @@ public class AppConfigClient {
         }
     }
 
+    // ── Privacy Policy ───────────────────────────────────────────────────
+    // getPrivacyPolicy / getPrivacyPolicyAdmin return null on a downstream
+    // 204 (empty Mono), same as About Us above.
+
+    public PrivacyPolicyResponse getPrivacyPolicy() {
+        return call(privacyPolicyApi::getPrivacyPolicy);
+    }
+
+    public PrivacyPolicyResponse getPrivacyPolicyAdmin() {
+        return call(privacyPolicyApi::getPrivacyPolicyAdmin);
+    }
+
+    public PrivacyPolicyResponse updatePrivacyPolicy(UpdatePrivacyPolicyRequest request) {
+        return call(() -> privacyPolicyApi.updatePrivacyPolicy(request), AppConfigClient::privacyPolicyMessageFor);
+    }
+
     private <T> T call(Supplier<Mono<T>> invocation) {
         return call(invocation, AppConfigClient::messageFor);
     }
@@ -259,6 +281,15 @@ public class AppConfigClient {
     private static String aboutUsMessageFor(HttpStatusCode status) {
         if (status.equals(HttpStatus.BAD_REQUEST)) {
             return "The About Us page could not be saved — check the title and section content.";
+        }
+        return messageFor(status);
+    }
+
+    // Privacy Policy save rejects with 400 on a blank title/body — everything
+    // else falls back to messageFor.
+    private static String privacyPolicyMessageFor(HttpStatusCode status) {
+        if (status.equals(HttpStatus.BAD_REQUEST)) {
+            return "The Privacy Policy page could not be saved — check the title and body text.";
         }
         return messageFor(status);
     }

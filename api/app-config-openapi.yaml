@@ -39,6 +39,15 @@ tags:
       of typed content blocks — stored opaquely, the same way skateboard-podcast-be
       stores a post's blocks. Block image references are stored as bare object
       keys and re-signed on every read.
+  - name: privacy-policy
+    description: >-
+      The Privacy Policy page — an admin-configurable, application-wide
+      title+body text page. Unlike About Us, GET /api/privacy-policy is fully
+      anonymous/pre-auth (no x-required-permissions, no security requirement
+      at all) — the App Store / Play Store listing links to it directly, and
+      app reviewers and signed-out users must be able to read it. Reading the
+      draft, and saving, require FUNC_PRIVACY_POLICY_MANAGE. The page is a
+      singleton (one draft, one published version).
   - name: campaign
     description: >-
       Startup Campaigns — configurable, ordered screen sequences (sponsor/event/
@@ -718,6 +727,95 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '403':
           description: Forbidden – FUNC_ABOUT_US_MANAGE required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/privacy-policy:
+    get:
+      tags: [privacy-policy]
+      operationId: getPrivacyPolicy
+      summary: Get the published Privacy Policy page (anonymous, no auth required)
+      responses:
+        '200':
+          description: The published Privacy Policy page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrivacyPolicyResponse'
+        '204':
+          description: No Privacy Policy page has been published yet
+    put:
+      tags: [privacy-policy]
+      operationId: updatePrivacyPolicy
+      summary: Create or update the Privacy Policy page (admin only)
+      description: >-
+        Saves the single Privacy Policy page. status=published makes it
+        visible on GET /api/privacy-policy (anonymous); status=draft keeps it
+        admin-only.
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_PRIVACY_POLICY_MANAGE
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePrivacyPolicyRequest'
+      responses:
+        '200':
+          description: Privacy Policy page saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrivacyPolicyResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_PRIVACY_POLICY_MANAGE required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/privacy-policy/admin:
+    get:
+      tags: [privacy-policy]
+      operationId: getPrivacyPolicyAdmin
+      summary: Get the Privacy Policy page including unpublished draft content (admin only)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_PRIVACY_POLICY_MANAGE
+      responses:
+        '200':
+          description: The current Privacy Policy page (draft or published)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrivacyPolicyResponse'
+        '204':
+          description: No Privacy Policy page has been created yet
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_PRIVACY_POLICY_MANAGE required
           content:
             application/json:
               schema:
@@ -1553,6 +1651,39 @@ components:
       properties:
         url:
           type: string
+
+    PrivacyPolicyStatus:
+      type: string
+      enum: [draft, published]
+
+    PrivacyPolicyResponse:
+      type: object
+      required: [title, body, status]
+      properties:
+        title:
+          type: string
+        body:
+          type: string
+        status:
+          $ref: '#/components/schemas/PrivacyPolicyStatus'
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedBy:
+          type: string
+          nullable: true
+
+    UpdatePrivacyPolicyRequest:
+      type: object
+      required: [title, body, status]
+      properties:
+        title:
+          type: string
+        body:
+          type: string
+        status:
+          $ref: '#/components/schemas/PrivacyPolicyStatus'
 
     HomeVideoCategoryConfigMode:
       type: string
