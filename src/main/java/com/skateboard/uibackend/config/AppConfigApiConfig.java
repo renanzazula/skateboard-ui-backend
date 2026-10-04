@@ -5,8 +5,10 @@ import com.skateboard.uibackend.client.appconfig.generated.api.AdminApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.CampaignApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.HomeApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.HomeFeaturedPlayerApi;
+import com.skateboard.uibackend.client.appconfig.generated.api.LicensesApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.PrivacyPolicyApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.PublicApi;
+import com.skateboard.uibackend.client.appconfig.generated.api.TermsApi;
 import com.skateboard.uibackend.client.appconfig.generated.invoker.ApiClient;
 import com.skateboard.uibackend.web.BearerTokenExchangeFilter;
 import com.skateboard.uibackend.web.CorrelationIdExchangeFilter;
@@ -86,5 +88,15 @@ public class AppConfigApiConfig {
     @Bean
     public PrivacyPolicyApi privacyPolicyApi(ApiClient appConfigApiClient) {
         return new PrivacyPolicyApi(appConfigApiClient);
+    }
+
+    @Bean
+    public TermsApi termsApi(ApiClient appConfigApiClient) {
+        return new TermsApi(appConfigApiClient);
+    }
+
+    @Bean
+    public LicensesApi licensesApi(ApiClient appConfigApiClient) {
+        return new LicensesApi(appConfigApiClient);
     }
 }

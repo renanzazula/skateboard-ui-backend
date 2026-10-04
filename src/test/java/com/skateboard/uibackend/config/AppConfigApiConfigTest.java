@@ -5,7 +5,10 @@ import com.skateboard.uibackend.client.appconfig.generated.api.AdminApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.CampaignApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.HomeApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.HomeFeaturedPlayerApi;
+import com.skateboard.uibackend.client.appconfig.generated.api.LicensesApi;
+import com.skateboard.uibackend.client.appconfig.generated.api.PrivacyPolicyApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.PublicApi;
+import com.skateboard.uibackend.client.appconfig.generated.api.TermsApi;
 import com.skateboard.uibackend.client.appconfig.generated.invoker.ApiClient;
 import com.skateboard.uibackend.web.BearerTokenExchangeFilter;
 import com.skateboard.uibackend.web.CorrelationIdExchangeFilter;
@@ -47,5 +50,8 @@ class AppConfigApiConfigTest {
         assertThat(config.homeFeaturedPlayerApi(apiClient)).isInstanceOf(HomeFeaturedPlayerApi.class);
         assertThat(config.aboutUsApi(apiClient)).isInstanceOf(AboutUsApi.class);
         assertThat(config.campaignApi(apiClient)).isInstanceOf(CampaignApi.class);
+        assertThat(config.privacyPolicyApi(apiClient)).isInstanceOf(PrivacyPolicyApi.class);
+        assertThat(config.termsApi(apiClient)).isInstanceOf(TermsApi.class);
+        assertThat(config.licensesApi(apiClient)).isInstanceOf(LicensesApi.class);
     }
 }
