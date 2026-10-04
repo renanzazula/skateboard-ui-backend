@@ -8,12 +8,16 @@ import com.skateboard.uibackend.client.appconfig.generated.model.BrandingConfigR
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeFeaturedPlayerConfigResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeVideoCategoryConfigRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeVideoCategoryConfigResponse;
+import com.skateboard.uibackend.client.appconfig.generated.model.LicensesResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.PrivacyPolicyResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.PublicConfigResponse;
+import com.skateboard.uibackend.client.appconfig.generated.model.TermsResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdateAboutPageRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdateHomeFeaturedPlayerConfigRequest;
+import com.skateboard.uibackend.client.appconfig.generated.model.UpdateLicensesRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdateLoginTextRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdatePrivacyPolicyRequest;
+import com.skateboard.uibackend.client.appconfig.generated.model.UpdateTermsRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -232,5 +236,55 @@ class AppConfigServiceTest {
         when(appConfigClient.updatePrivacyPolicy(request)).thenReturn(response);
 
         assertThat(service.updatePrivacyPolicy(request)).isSameAs(response);
+    }
+
+    @Test
+    void getTermsDelegates() {
+        TermsResponse response = new TermsResponse();
+        when(appConfigClient.getTerms()).thenReturn(response);
+
+        assertThat(service.getTerms()).isSameAs(response);
+    }
+
+    @Test
+    void getTermsAdminDelegates() {
+        TermsResponse response = new TermsResponse();
+        when(appConfigClient.getTermsAdmin()).thenReturn(response);
+
+        assertThat(service.getTermsAdmin()).isSameAs(response);
+    }
+
+    @Test
+    void updateTermsDelegates() {
+        UpdateTermsRequest request = new UpdateTermsRequest();
+        TermsResponse response = new TermsResponse();
+        when(appConfigClient.updateTerms(request)).thenReturn(response);
+
+        assertThat(service.updateTerms(request)).isSameAs(response);
+    }
+
+    @Test
+    void getLicensesDelegates() {
+        LicensesResponse response = new LicensesResponse();
+        when(appConfigClient.getLicenses()).thenReturn(response);
+
+        assertThat(service.getLicenses()).isSameAs(response);
+    }
+
+    @Test
+    void getLicensesAdminDelegates() {
+        LicensesResponse response = new LicensesResponse();
+        when(appConfigClient.getLicensesAdmin()).thenReturn(response);
+
+        assertThat(service.getLicensesAdmin()).isSameAs(response);
+    }
+
+    @Test
+    void updateLicensesDelegates() {
+        UpdateLicensesRequest request = new UpdateLicensesRequest();
+        LicensesResponse response = new LicensesResponse();
+        when(appConfigClient.updateLicenses(request)).thenReturn(response);
+
+        assertThat(service.updateLicenses(request)).isSameAs(response);
     }
 }

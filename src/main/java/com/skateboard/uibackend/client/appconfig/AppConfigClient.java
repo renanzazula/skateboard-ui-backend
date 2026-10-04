@@ -4,8 +4,10 @@ import com.skateboard.uibackend.client.appconfig.generated.api.AboutUsApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.AdminApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.HomeApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.HomeFeaturedPlayerApi;
+import com.skateboard.uibackend.client.appconfig.generated.api.LicensesApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.PrivacyPolicyApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.PublicApi;
+import com.skateboard.uibackend.client.appconfig.generated.api.TermsApi;
 import com.skateboard.uibackend.client.appconfig.generated.model.AboutImageResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.AboutPageResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.BrandingAssetResponse;
@@ -13,12 +15,16 @@ import com.skateboard.uibackend.client.appconfig.generated.model.BrandingConfigR
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeFeaturedPlayerConfigResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeVideoCategoryConfigRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeVideoCategoryConfigResponse;
+import com.skateboard.uibackend.client.appconfig.generated.model.LicensesResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.PrivacyPolicyResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.PublicConfigResponse;
+import com.skateboard.uibackend.client.appconfig.generated.model.TermsResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdateAboutPageRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdateHomeFeaturedPlayerConfigRequest;
+import com.skateboard.uibackend.client.appconfig.generated.model.UpdateLicensesRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdateLoginTextRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdatePrivacyPolicyRequest;
+import com.skateboard.uibackend.client.appconfig.generated.model.UpdateTermsRequest;
 import com.skateboard.uibackend.client.support.TempFiles;
 import com.skateboard.uibackend.exception.DownstreamServiceException;
 import org.springframework.http.HttpStatus;
@@ -59,16 +65,20 @@ public class AppConfigClient {
     private final HomeFeaturedPlayerApi homeFeaturedPlayerApi;
     private final AboutUsApi aboutUsApi;
     private final PrivacyPolicyApi privacyPolicyApi;
+    private final TermsApi termsApi;
+    private final LicensesApi licensesApi;
 
     public AppConfigClient(PublicApi publicApi, AdminApi adminApi, HomeApi homeApi,
                            HomeFeaturedPlayerApi homeFeaturedPlayerApi, AboutUsApi aboutUsApi,
-                           PrivacyPolicyApi privacyPolicyApi) {
+                           PrivacyPolicyApi privacyPolicyApi, TermsApi termsApi, LicensesApi licensesApi) {
         this.publicApi = publicApi;
         this.adminApi = adminApi;
         this.homeApi = homeApi;
         this.homeFeaturedPlayerApi = homeFeaturedPlayerApi;
         this.aboutUsApi = aboutUsApi;
         this.privacyPolicyApi = privacyPolicyApi;
+        this.termsApi = termsApi;
+        this.licensesApi = licensesApi;
     }
 
     public PublicConfigResponse getPublicConfig() {
@@ -193,6 +203,38 @@ public class AppConfigClient {
         return call(() -> privacyPolicyApi.updatePrivacyPolicy(request), AppConfigClient::privacyPolicyMessageFor);
     }
 
+    // ── Terms & Conditions ──────────────────────────────────────────────
+    // getTerms / getTermsAdmin return null on a downstream 204 (empty Mono),
+    // same as About Us above.
+
+    public TermsResponse getTerms() {
+        return call(termsApi::getTerms);
+    }
+
+    public TermsResponse getTermsAdmin() {
+        return call(termsApi::getTermsAdmin);
+    }
+
+    public TermsResponse updateTerms(UpdateTermsRequest request) {
+        return call(() -> termsApi.updateTerms(request), AppConfigClient::termsMessageFor);
+    }
+
+    // ── Open-source Licenses ─────────────────────────────────────────────
+    // getLicenses / getLicensesAdmin return null on a downstream 204 (empty
+    // Mono), same as About Us above.
+
+    public LicensesResponse getLicenses() {
+        return call(licensesApi::getLicenses);
+    }
+
+    public LicensesResponse getLicensesAdmin() {
+        return call(licensesApi::getLicensesAdmin);
+    }
+
+    public LicensesResponse updateLicenses(UpdateLicensesRequest request) {
+        return call(() -> licensesApi.updateLicenses(request), AppConfigClient::licensesMessageFor);
+    }
+
     private <T> T call(Supplier<Mono<T>> invocation) {
         return call(invocation, AppConfigClient::messageFor);
     }
@@ -290,6 +332,22 @@ public class AppConfigClient {
     private static String privacyPolicyMessageFor(HttpStatusCode status) {
         if (status.equals(HttpStatus.BAD_REQUEST)) {
             return "The Privacy Policy page could not be saved — check the title and body text.";
+        }
+        return messageFor(status);
+    }
+
+    // Terms/Licenses save rejects with 400 on a blank title/body — everything
+    // else falls back to messageFor.
+    private static String termsMessageFor(HttpStatusCode status) {
+        if (status.equals(HttpStatus.BAD_REQUEST)) {
+            return "The Terms & Conditions page could not be saved — check the title and body text.";
+        }
+        return messageFor(status);
+    }
+
+    private static String licensesMessageFor(HttpStatusCode status) {
+        if (status.equals(HttpStatus.BAD_REQUEST)) {
+            return "The Open-source Licenses page could not be saved — check the title and body text.";
         }
         return messageFor(status);
     }

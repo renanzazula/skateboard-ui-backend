@@ -8,12 +8,16 @@ import com.skateboard.uibackend.client.appconfig.generated.model.BrandingConfigR
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeFeaturedPlayerConfigResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeVideoCategoryConfigRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeVideoCategoryConfigResponse;
+import com.skateboard.uibackend.client.appconfig.generated.model.LicensesResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.PrivacyPolicyResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.PublicConfigResponse;
+import com.skateboard.uibackend.client.appconfig.generated.model.TermsResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdateAboutPageRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdateHomeFeaturedPlayerConfigRequest;
+import com.skateboard.uibackend.client.appconfig.generated.model.UpdateLicensesRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdateLoginTextRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdatePrivacyPolicyRequest;
+import com.skateboard.uibackend.client.appconfig.generated.model.UpdateTermsRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -124,5 +128,33 @@ public class AppConfigService {
 
     public PrivacyPolicyResponse updatePrivacyPolicy(UpdatePrivacyPolicyRequest request) {
         return appConfigClient.updatePrivacyPolicy(request);
+    }
+
+    /** Null when app-config-be answered 204 (no published page yet). */
+    public TermsResponse getTerms() {
+        return appConfigClient.getTerms();
+    }
+
+    /** Null when app-config-be answered 204 (no page created yet). */
+    public TermsResponse getTermsAdmin() {
+        return appConfigClient.getTermsAdmin();
+    }
+
+    public TermsResponse updateTerms(UpdateTermsRequest request) {
+        return appConfigClient.updateTerms(request);
+    }
+
+    /** Null when app-config-be answered 204 (no published page yet). */
+    public LicensesResponse getLicenses() {
+        return appConfigClient.getLicenses();
+    }
+
+    /** Null when app-config-be answered 204 (no page created yet). */
+    public LicensesResponse getLicensesAdmin() {
+        return appConfigClient.getLicensesAdmin();
+    }
+
+    public LicensesResponse updateLicenses(UpdateLicensesRequest request) {
+        return appConfigClient.updateLicenses(request);
     }
 }

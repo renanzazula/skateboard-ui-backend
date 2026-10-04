@@ -58,6 +58,21 @@ tags:
       require FUNC_PRIVACY_POLICY_MANAGE. The page is a singleton (one draft,
       one published version) with a plain title+body text pair, no content
       blocks. Proxied straight through to skateboard-app-config-be.
+  - name: terms
+    description: >-
+      Terms & Conditions page, mirroring privacy-policy's shape. Unlike
+      privacy-policy, GET /api/terms is gated by FUNC_TAB_SETTINGS (any
+      authenticated user) rather than being fully anonymous. The /admin read
+      and PUT require FUNC_TERMS_MANAGE. The page is a singleton (one draft,
+      one published version) with a plain title+body text pair. Proxied
+      straight through to skateboard-app-config-be.
+  - name: licenses
+    description: >-
+      Open-source Licenses page, mirroring terms' shape. GET /api/licenses is
+      gated by FUNC_TAB_SETTINGS (any authenticated user). The /admin read and
+      PUT require FUNC_LICENSES_MANAGE. The page is a singleton (one draft,
+      one published version) with a plain title+body text pair. Proxied
+      straight through to skateboard-app-config-be.
   - name: campaign
     description: >-
       Startup Campaigns (.docs/README-campaign-v1-implementation-plan.md) —
@@ -1423,6 +1438,209 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '403':
           description: Forbidden – FUNC_PRIVACY_POLICY_MANAGE required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/terms:
+    get:
+      tags: [terms]
+      operationId: getTerms
+      summary: Get the published Terms & Conditions page (any authenticated user)
+      description: >-
+        Reached from the Settings tab, so it is gated by FUNC_TAB_SETTINGS —
+        the baseline authority every standard user holds.
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_TAB_SETTINGS
+      responses:
+        '200':
+          description: The published Terms & Conditions page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TermsResponse'
+        '204':
+          description: No Terms & Conditions page has been published yet
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags: [terms]
+      operationId: updateTerms
+      summary: Create or update the Terms & Conditions page (admin only)
+      description: >-
+        Saves the single Terms & Conditions page. `status: published` makes it
+        visible on GET /api/terms; `status: draft` keeps changes admin-only.
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_TERMS_MANAGE
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTermsRequest'
+      responses:
+        '200':
+          description: Terms & Conditions page saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TermsResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_TERMS_MANAGE required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/terms/admin:
+    get:
+      tags: [terms]
+      operationId: getTermsAdmin
+      summary: Get the Terms & Conditions page including unpublished draft content (admin only)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_TERMS_MANAGE
+      responses:
+        '200':
+          description: The current Terms & Conditions page (draft or published)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TermsResponse'
+        '204':
+          description: No Terms & Conditions page has been created yet
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_TERMS_MANAGE required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/licenses:
+    get:
+      tags: [licenses]
+      operationId: getLicenses
+      summary: Get the published Open-source Licenses page (any authenticated user)
+      description: >-
+        Reached from the Settings tab, so it is gated by FUNC_TAB_SETTINGS —
+        the baseline authority every standard user holds.
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_TAB_SETTINGS
+      responses:
+        '200':
+          description: The published Open-source Licenses page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LicensesResponse'
+        '204':
+          description: No Open-source Licenses page has been published yet
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags: [licenses]
+      operationId: updateLicenses
+      summary: Create or update the Open-source Licenses page (admin only)
+      description: >-
+        Saves the single Open-source Licenses page. `status: published` makes
+        it visible on GET /api/licenses; `status: draft` keeps changes
+        admin-only.
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_LICENSES_MANAGE
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateLicensesRequest'
+      responses:
+        '200':
+          description: Open-source Licenses page saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LicensesResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_LICENSES_MANAGE required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/licenses/admin:
+    get:
+      tags: [licenses]
+      operationId: getLicensesAdmin
+      summary: Get the Open-source Licenses page including unpublished draft content (admin only)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_LICENSES_MANAGE
+      responses:
+        '200':
+          description: The current Open-source Licenses page (draft or published)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LicensesResponse'
+        '204':
+          description: No Open-source Licenses page has been created yet
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_LICENSES_MANAGE required
           content:
             application/json:
               schema:
@@ -3578,6 +3796,72 @@ components:
           type: string
         status:
           $ref: '#/components/schemas/PrivacyPolicyStatus'
+
+    TermsStatus:
+      type: string
+      enum: [draft, published]
+
+    TermsResponse:
+      type: object
+      required: [title, body, status]
+      properties:
+        title:
+          type: string
+        body:
+          type: string
+        status:
+          $ref: '#/components/schemas/TermsStatus'
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedBy:
+          type: string
+          nullable: true
+
+    UpdateTermsRequest:
+      type: object
+      required: [title, body, status]
+      properties:
+        title:
+          type: string
+        body:
+          type: string
+        status:
+          $ref: '#/components/schemas/TermsStatus'
+
+    LicensesStatus:
+      type: string
+      enum: [draft, published]
+
+    LicensesResponse:
+      type: object
+      required: [title, body, status]
+      properties:
+        title:
+          type: string
+        body:
+          type: string
+        status:
+          $ref: '#/components/schemas/LicensesStatus'
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedBy:
+          type: string
+          nullable: true
+
+    UpdateLicensesRequest:
+      type: object
+      required: [title, body, status]
+      properties:
+        title:
+          type: string
+        body:
+          type: string
+        status:
+          $ref: '#/components/schemas/LicensesStatus'
 
     ErrorResponse:
       # Matches exception/ErrorResponse, which is what this service actually

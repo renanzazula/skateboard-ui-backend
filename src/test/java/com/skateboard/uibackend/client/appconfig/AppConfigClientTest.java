@@ -4,8 +4,10 @@ import com.skateboard.uibackend.client.appconfig.generated.api.AboutUsApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.AdminApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.HomeApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.HomeFeaturedPlayerApi;
+import com.skateboard.uibackend.client.appconfig.generated.api.LicensesApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.PrivacyPolicyApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.PublicApi;
+import com.skateboard.uibackend.client.appconfig.generated.api.TermsApi;
 import com.skateboard.uibackend.client.appconfig.generated.model.AboutImageResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.AboutPageResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.BrandingAssetResponse;
@@ -13,12 +15,16 @@ import com.skateboard.uibackend.client.appconfig.generated.model.BrandingConfigR
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeFeaturedPlayerConfigResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeVideoCategoryConfigRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeVideoCategoryConfigResponse;
+import com.skateboard.uibackend.client.appconfig.generated.model.LicensesResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.PrivacyPolicyResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.PublicConfigResponse;
+import com.skateboard.uibackend.client.appconfig.generated.model.TermsResponse;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdateAboutPageRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdateHomeFeaturedPlayerConfigRequest;
+import com.skateboard.uibackend.client.appconfig.generated.model.UpdateLicensesRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdateLoginTextRequest;
 import com.skateboard.uibackend.client.appconfig.generated.model.UpdatePrivacyPolicyRequest;
+import com.skateboard.uibackend.client.appconfig.generated.model.UpdateTermsRequest;
 import com.skateboard.uibackend.exception.DownstreamServiceException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -63,6 +69,10 @@ class AppConfigClientTest {
     private AboutUsApi aboutUsApi;
     @Mock
     private PrivacyPolicyApi privacyPolicyApi;
+    @Mock
+    private TermsApi termsApi;
+    @Mock
+    private LicensesApi licensesApi;
 
     private AppConfigClient client;
 
@@ -71,7 +81,8 @@ class AppConfigClientTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        client = new AppConfigClient(publicApi, adminApi, homeApi, homeFeaturedPlayerApi, aboutUsApi, privacyPolicyApi);
+        client = new AppConfigClient(publicApi, adminApi, homeApi, homeFeaturedPlayerApi, aboutUsApi,
+                privacyPolicyApi, termsApi, licensesApi);
     }
 
     private static WebClientResponseException responseException(HttpStatus status) {
@@ -311,6 +322,76 @@ class AppConfigClientTest {
 
         DownstreamServiceException ex = catchThrowableOfType(
                 () -> client.updatePrivacyPolicy(new UpdatePrivacyPolicyRequest()), DownstreamServiceException.class);
+
+        assertThat(ex.getMessage()).contains("could not be saved");
+    }
+
+    @Test
+    void getTermsPassesThrough() {
+        TermsResponse response = new TermsResponse();
+        when(termsApi.getTerms()).thenReturn(Mono.just(response));
+
+        assertThat(client.getTerms()).isSameAs(response);
+    }
+
+    @Test
+    void getTermsAdminPassesThrough() {
+        TermsResponse response = new TermsResponse();
+        when(termsApi.getTermsAdmin()).thenReturn(Mono.just(response));
+
+        assertThat(client.getTermsAdmin()).isSameAs(response);
+    }
+
+    @Test
+    void updateTermsPassesThrough() {
+        UpdateTermsRequest request = new UpdateTermsRequest();
+        TermsResponse response = new TermsResponse();
+        when(termsApi.updateTerms(request)).thenReturn(Mono.just(response));
+
+        assertThat(client.updateTerms(request)).isSameAs(response);
+    }
+
+    @Test
+    void updateTermsMaps400ToItsDomainSpecificMessage() {
+        when(termsApi.updateTerms(any())).thenReturn(Mono.error(responseException(HttpStatus.BAD_REQUEST)));
+
+        DownstreamServiceException ex = catchThrowableOfType(
+                () -> client.updateTerms(new UpdateTermsRequest()), DownstreamServiceException.class);
+
+        assertThat(ex.getMessage()).contains("could not be saved");
+    }
+
+    @Test
+    void getLicensesPassesThrough() {
+        LicensesResponse response = new LicensesResponse();
+        when(licensesApi.getLicenses()).thenReturn(Mono.just(response));
+
+        assertThat(client.getLicenses()).isSameAs(response);
+    }
+
+    @Test
+    void getLicensesAdminPassesThrough() {
+        LicensesResponse response = new LicensesResponse();
+        when(licensesApi.getLicensesAdmin()).thenReturn(Mono.just(response));
+
+        assertThat(client.getLicensesAdmin()).isSameAs(response);
+    }
+
+    @Test
+    void updateLicensesPassesThrough() {
+        UpdateLicensesRequest request = new UpdateLicensesRequest();
+        LicensesResponse response = new LicensesResponse();
+        when(licensesApi.updateLicenses(request)).thenReturn(Mono.just(response));
+
+        assertThat(client.updateLicenses(request)).isSameAs(response);
+    }
+
+    @Test
+    void updateLicensesMaps400ToItsDomainSpecificMessage() {
+        when(licensesApi.updateLicenses(any())).thenReturn(Mono.error(responseException(HttpStatus.BAD_REQUEST)));
+
+        DownstreamServiceException ex = catchThrowableOfType(
+                () -> client.updateLicenses(new UpdateLicensesRequest()), DownstreamServiceException.class);
 
         assertThat(ex.getMessage()).contains("could not be saved");
     }
