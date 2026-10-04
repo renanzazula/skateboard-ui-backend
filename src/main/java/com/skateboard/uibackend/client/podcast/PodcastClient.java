@@ -100,8 +100,14 @@ public class PodcastClient {
         return callList(podcastApi::getCategories);
     }
 
+    /** Unfiltered category page — what HomeService pages through. */
     public FeedPageResponse getCategoryPosts(String slug, Integer page, Integer size) {
-        return call(() -> podcastApi.getCategoryPosts(slug, page, size));
+        return getCategoryPosts(slug, page, size, null);
+    }
+
+    /** @param search optional title / episode-number filter, applied by podcast-be; null for the whole category */
+    public FeedPageResponse getCategoryPosts(String slug, Integer page, Integer size, String search) {
+        return call(() -> podcastApi.getCategoryPosts(slug, page, size, search));
     }
 
     public List<AdminCategoryResponse> getAdminCategories() {

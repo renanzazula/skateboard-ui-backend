@@ -164,9 +164,17 @@ class PodcastClientTest {
     @Test
     void getCategoryPostsPassesThrough() {
         FeedPageResponse response = new FeedPageResponse().page(0).size(10);
-        when(podcastApi.getCategoryPosts("skate-clips", 0, 10)).thenReturn(Mono.just(response));
+        when(podcastApi.getCategoryPosts("skate-clips", 0, 10, null)).thenReturn(Mono.just(response));
 
         assertThat(client.getCategoryPosts("skate-clips", 0, 10)).isSameAs(response);
+    }
+
+    @Test
+    void getCategoryPostsForwardsTheSearchTerm() {
+        FeedPageResponse response = new FeedPageResponse().page(0).size(10);
+        when(podcastApi.getCategoryPosts("skate-clips", 1, 10, "ep 42")).thenReturn(Mono.just(response));
+
+        assertThat(client.getCategoryPosts("skate-clips", 1, 10, "ep 42")).isSameAs(response);
     }
 
     @Test

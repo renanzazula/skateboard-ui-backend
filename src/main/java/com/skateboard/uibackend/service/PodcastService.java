@@ -63,8 +63,8 @@ public class PodcastService {
         return podcastClient.getCategories();
     }
 
-    public FeedPageResponse getCategoryPosts(String slug, Integer page, Integer size) {
-        return podcastClient.getCategoryPosts(slug, page, size);
+    public FeedPageResponse getCategoryPosts(String slug, Integer page, Integer size, String search) {
+        return podcastClient.getCategoryPosts(slug, page, size, search);
     }
 
     public List<AdminCategoryResponse> getAdminCategories() {
