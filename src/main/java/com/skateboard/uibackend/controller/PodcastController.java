@@ -102,8 +102,9 @@ public class PodcastController {
     @PreAuthorize("hasAuthority('FUNC_TAB_PODCAST')")
     public FeedPageResponse getCategoryPosts(@PathVariable String slug,
                                               @RequestParam(defaultValue = "0") Integer page,
-                                              @RequestParam(defaultValue = "10") Integer size) {
-        return podcastService.getCategoryPosts(slug, page, size);
+                                              @RequestParam(defaultValue = "10") Integer size,
+                                              @RequestParam(required = false) String search) {
+        return podcastService.getCategoryPosts(slug, page, size, search);
     }
 
     @GetMapping("/api/admin/categories")

@@ -112,9 +112,9 @@ class PodcastServiceTest {
     @Test
     void getCategoryPostsDelegates() {
         FeedPageResponse response = new FeedPageResponse();
-        when(podcastClient.getCategoryPosts("skate-clips", 0, 10)).thenReturn(response);
+        when(podcastClient.getCategoryPosts("skate-clips", 0, 10, "42")).thenReturn(response);
 
-        assertThat(service.getCategoryPosts("skate-clips", 0, 10)).isSameAs(response);
+        assertThat(service.getCategoryPosts("skate-clips", 0, 10, "42")).isSameAs(response);
     }
 
     @Test

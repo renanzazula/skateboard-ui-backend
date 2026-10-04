@@ -113,9 +113,9 @@ class PodcastControllerTest {
     @Test
     void getCategoryPostsDelegates() {
         FeedPageResponse response = new FeedPageResponse();
-        when(podcastService.getCategoryPosts("skate-clips", 0, 10)).thenReturn(response);
+        when(podcastService.getCategoryPosts("skate-clips", 0, 10, "42")).thenReturn(response);
 
-        assertThat(controller.getCategoryPosts("skate-clips", 0, 10)).isSameAs(response);
+        assertThat(controller.getCategoryPosts("skate-clips", 0, 10, "42")).isSameAs(response);
     }
 
     @Test
