@@ -3,6 +3,7 @@ package com.skateboard.uibackend.config;
 import com.skateboard.uibackend.client.appconfig.generated.api.AboutUsApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.AdminApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.CampaignApi;
+import com.skateboard.uibackend.client.appconfig.generated.api.GuestApplicationSettingsApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.HomeApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.HomeFeaturedPlayerApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.LicensesApi;
@@ -53,5 +54,6 @@ class AppConfigApiConfigTest {
         assertThat(config.privacyPolicyApi(apiClient)).isInstanceOf(PrivacyPolicyApi.class);
         assertThat(config.termsApi(apiClient)).isInstanceOf(TermsApi.class);
         assertThat(config.licensesApi(apiClient)).isInstanceOf(LicensesApi.class);
+        assertThat(config.guestApplicationSettingsApi(apiClient)).isInstanceOf(GuestApplicationSettingsApi.class);
     }
 }

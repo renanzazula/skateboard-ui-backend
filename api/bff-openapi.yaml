@@ -88,6 +88,18 @@ tags:
       are computed from startAt/endAt at read time. Screen images are stored
       as-is (no resizing/CDN in V1) and re-signed on every read. Proxied
       straight through to skateboard-app-config-be.
+  - name: guest-applications
+    description: >-
+      Apply to be a podcast guest (.docs/README_GUEST_APPLICATION_lang.md).
+      /api/guest-applications/** (submit, own application, admin list/detail/
+      status) proxies to skateboard-podcast-be; /api/guest-application-settings/**
+      (feature toggle, recipients, confirmation email template) proxies to
+      skateboard-app-config-be. GET /api/guest-application-settings is the
+      only unrestricted-but-authenticated route (feature availability only,
+      no x-required-permissions); everything else mirrors its own spec
+      entry's x-required-permissions (FUNC_GUEST_APPLICATION_CREATE,
+      FUNC_GUEST_APPLICATION_READ_OWN, FUNC_GUEST_APPLICATION_MANAGE,
+      FUNC_GUEST_APPLICATION_CONFIGURE).
 
 paths:
 
@@ -2913,6 +2925,306 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  # ── Guest Application (proxied: podcast-be for applications,
+  #    app-config-be for settings) ──────────────────────────────────────
+
+  /api/guest-applications:
+    post:
+      tags: [guest-applications]
+      operationId: submitGuestApplication
+      summary: Submit an application to be a podcast guest
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_GUEST_APPLICATION_CREATE
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGuestApplicationRequest'
+      responses:
+        '201':
+          description: Application submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuestApplicationResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: The user already has an active application
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/guest-applications/me:
+    get:
+      tags: [guest-applications]
+      operationId: getMyGuestApplication
+      summary: Get the authenticated user's active or most recent application
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_GUEST_APPLICATION_READ_OWN
+      responses:
+        '200':
+          description: The user's application
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuestApplicationResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: The user has never submitted an application
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/admin/guest-applications:
+    get:
+      tags: [guest-applications]
+      operationId: getGuestApplications
+      summary: List guest applications, optionally filtered by status (admin only)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_GUEST_APPLICATION_MANAGE
+      parameters:
+        - name: status
+          in: query
+          description: 'One of: NEW, CONTACTED, ACCEPTED, DECLINED. Omitted means every status.'
+          schema: { type: string }
+        - name: page
+          in: query
+          schema: { type: integer, default: 0 }
+        - name: size
+          in: query
+          schema: { type: integer, default: 10 }
+      responses:
+        '200':
+          description: Guest application page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuestApplicationPageResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – admin role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/admin/guest-applications/{id}:
+    get:
+      tags: [guest-applications]
+      operationId: getGuestApplicationById
+      summary: Get a single guest application (admin only)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_GUEST_APPLICATION_MANAGE
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Application detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuestApplicationResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – admin role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Application not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/admin/guest-applications/{id}/status:
+    patch:
+      tags: [guest-applications]
+      operationId: updateGuestApplicationStatus
+      summary: Update an application's review status (admin only)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_GUEST_APPLICATION_MANAGE
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateGuestApplicationStatusRequest'
+      responses:
+        '200':
+          description: Updated application
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuestApplicationResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – admin role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Application not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/guest-application-settings:
+    get:
+      tags: [guest-applications]
+      operationId: getGuestApplicationSettingsPublic
+      summary: Get Guest Application feature availability
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current feature availability
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicGuestApplicationSettingsResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/guest-application-settings/admin:
+    get:
+      tags: [guest-applications]
+      operationId: getGuestApplicationSettingsAdmin
+      summary: Get the full Guest Application settings (admin only)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_GUEST_APPLICATION_CONFIGURE
+      responses:
+        '200':
+          description: Current Guest Application settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuestApplicationSettingsResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_GUEST_APPLICATION_CONFIGURE required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags: [guest-applications]
+      operationId: updateGuestApplicationSettings
+      summary: Update the Guest Application feature toggle, recipients, and confirmation email template (admin only)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_GUEST_APPLICATION_CONFIGURE
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateGuestApplicationSettingsRequest'
+      responses:
+        '200':
+          description: Guest Application settings saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuestApplicationSettingsResponse'
+        '400':
+          description: Invalid input (e.g. enabling with no recipients, or an unsupported placeholder)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_GUEST_APPLICATION_CONFIGURE required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -4178,3 +4490,134 @@ components:
           type: string
           nullable: true
           description: Only set for CAMPAIGN_CTA_CLICKED.
+
+    # ── Guest Application (proxied: podcast-be for applications,
+    #    app-config-be for settings) ──────────────────────────────────────
+
+    GuestApplicationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+        message:
+          type: string
+        socialLinks:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [NEW, CONTACTED, ACCEPTED, DECLINED]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        reviewedBy:
+          type: string
+          format: uuid
+          nullable: true
+
+    GuestApplicationPageResponse:
+      type: object
+      properties:
+        applications:
+          type: array
+          items:
+            $ref: '#/components/schemas/GuestApplicationResponse'
+        total:
+          type: integer
+          format: int64
+        page:
+          type: integer
+        size:
+          type: integer
+
+    CreateGuestApplicationRequest:
+      type: object
+      required: [name, email, message]
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        email:
+          type: string
+          format: email
+          maxLength: 320
+        message:
+          type: string
+          maxLength: 2000
+        socialLinks:
+          type: array
+          maxItems: 3
+          items:
+            type: string
+            format: uri
+            pattern: '^https?://.+'
+
+    UpdateGuestApplicationStatusRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [NEW, CONTACTED, ACCEPTED, DECLINED]
+
+    PublicGuestApplicationSettingsResponse:
+      type: object
+      required: [enabled]
+      properties:
+        enabled:
+          type: boolean
+
+    GuestApplicationSettingsResponse:
+      type: object
+      required: [enabled, recipientIds, confirmationSubject, confirmationBody]
+      properties:
+        enabled:
+          type: boolean
+        recipientIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        confirmationSubject:
+          type: string
+        confirmationBody:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedBy:
+          type: string
+          nullable: true
+
+    UpdateGuestApplicationSettingsRequest:
+      type: object
+      required: [enabled, recipientIds, confirmationSubject, confirmationBody]
+      properties:
+        enabled:
+          type: boolean
+        recipientIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        confirmationSubject:
+          type: string
+          minLength: 1
+          maxLength: 200
+        confirmationBody:
+          type: string
+          minLength: 1
+          maxLength: 4000

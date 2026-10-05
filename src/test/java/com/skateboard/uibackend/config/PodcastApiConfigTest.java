@@ -1,6 +1,8 @@
 package com.skateboard.uibackend.config;
 
+import com.skateboard.uibackend.client.podcast.generated.api.GuestApplicationsApi;
 import com.skateboard.uibackend.client.podcast.generated.api.PodcastApi;
+import com.skateboard.uibackend.client.podcast.generated.invoker.ApiClient;
 import com.skateboard.uibackend.web.BearerTokenExchangeFilter;
 import com.skateboard.uibackend.web.CorrelationIdExchangeFilter;
 import org.junit.jupiter.api.Test;
@@ -20,9 +22,17 @@ class PodcastApiConfigTest {
         properties.getPodcast().setConnectTimeoutMs(1000);
         properties.getPodcast().setReadTimeoutMs(2000);
 
-        PodcastApi podcastApi = config.podcastApi(WebClient.builder(), properties,
+        ApiClient apiClient = config.podcastApiClient(WebClient.builder(), properties,
                 new BearerTokenExchangeFilter(), new CorrelationIdExchangeFilter());
 
-        assertThat(podcastApi.getApiClient().getBasePath()).isEqualTo("http://podcast-be");
+        assertThat(apiClient.getBasePath()).isEqualTo("http://podcast-be");
+    }
+
+    @Test
+    void wiresEachGeneratedApiToTheSharedApiClient() {
+        ApiClient apiClient = new ApiClient();
+
+        assertThat(config.podcastApi(apiClient)).isInstanceOf(PodcastApi.class);
+        assertThat(config.guestApplicationsApi(apiClient)).isInstanceOf(GuestApplicationsApi.class);
     }
 }

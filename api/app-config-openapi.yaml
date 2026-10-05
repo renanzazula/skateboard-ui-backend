@@ -79,6 +79,17 @@ tags:
       job. Media is stored as-is (one object per screen, no resizing/CDN yet —
       see the V1 implementation plan) and re-signed on every read, same as
       branding/About Us images.
+  - name: guest-application-settings
+    description: >-
+      Admin configuration for the podcast "Apply to be a podcast guest"
+      feature (.docs/README_GUEST_APPLICATION_lang.md): the enable flag,
+      notification recipient ids, and the confirmation email template.
+      GET /api/guest-application-settings (feature availability only) only
+      requires authentication (any authenticated user — the Settings →
+      Community entry point uses it to decide whether to show the feature);
+      the admin GET/PUT require FUNC_GUEST_APPLICATION_CONFIGURE. Recipient
+      ids are opaque Keycloak user ids here — resolving them to names/emails
+      for display is the BFF's/notification-be's job, not this service's.
 
 paths:
 
@@ -1688,6 +1699,95 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/guest-application-settings:
+    get:
+      tags: [guest-application-settings]
+      operationId: getGuestApplicationSettingsPublic
+      summary: Get Guest Application feature availability
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current feature availability
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicGuestApplicationSettingsResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/guest-application-settings/admin:
+    get:
+      tags: [guest-application-settings]
+      operationId: getGuestApplicationSettingsAdmin
+      summary: Get the full Guest Application settings (admin only)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_GUEST_APPLICATION_CONFIGURE
+      responses:
+        '200':
+          description: Current Guest Application settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuestApplicationSettingsResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_GUEST_APPLICATION_CONFIGURE required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags: [guest-application-settings]
+      operationId: updateGuestApplicationSettings
+      summary: Update the Guest Application feature toggle, recipients, and confirmation email template (admin only)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_GUEST_APPLICATION_CONFIGURE
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateGuestApplicationSettingsRequest'
+      responses:
+        '200':
+          description: Guest Application settings saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuestApplicationSettingsResponse'
+        '400':
+          description: Invalid input (e.g. enabling with no recipients, or an unsupported placeholder)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_GUEST_APPLICATION_CONFIGURE required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1797,6 +1897,56 @@ components:
         timestamp:
           type: string
           format: date-time
+
+    PublicGuestApplicationSettingsResponse:
+      type: object
+      required: [enabled]
+      properties:
+        enabled:
+          type: boolean
+
+    GuestApplicationSettingsResponse:
+      type: object
+      required: [enabled, recipientIds, confirmationSubject, confirmationBody]
+      properties:
+        enabled:
+          type: boolean
+        recipientIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        confirmationSubject:
+          type: string
+        confirmationBody:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedBy:
+          type: string
+          nullable: true
+
+    UpdateGuestApplicationSettingsRequest:
+      type: object
+      required: [enabled, recipientIds, confirmationSubject, confirmationBody]
+      properties:
+        enabled:
+          type: boolean
+        recipientIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        confirmationSubject:
+          type: string
+          minLength: 1
+          maxLength: 200
+        confirmationBody:
+          type: string
+          minLength: 1
+          maxLength: 4000
 
     AboutPageStatus:
       type: string
