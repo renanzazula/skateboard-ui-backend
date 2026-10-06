@@ -29,7 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class SecurityConfigTest {
 
-    private static final String ISSUER = "https://skateboard-keycloak-production.up.railway.app/realms/skateboard-podcast";
+    private static final String ISSUER = "https://auth.skateboardpodcast.app/realms/skateboard-podcast";
 
     private final OAuth2TokenValidator<Jwt> validator = SecurityConfig.jwtValidator(ISSUER);
 
@@ -62,7 +62,7 @@ class SecurityConfigTest {
     @Test
     void rejectsATokenFromADifferentRealmOnTheSameHost() {
         Jwt jwt = token(
-                "https://skateboard-keycloak-production.up.railway.app/realms/some-other-realm",
+                "https://auth.skateboardpodcast.app/realms/some-other-realm",
                 Instant.now().plus(15, ChronoUnit.MINUTES));
 
         assertThat(validator.validate(jwt).hasErrors()).isTrue();

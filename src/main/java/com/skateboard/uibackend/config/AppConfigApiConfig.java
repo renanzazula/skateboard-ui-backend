@@ -39,7 +39,7 @@ public class AppConfigApiConfig {
                                          ClientsProperties clientsProperties,
                                          BearerTokenExchangeFilter bearerTokenExchangeFilter,
                                          CorrelationIdExchangeFilter correlationIdExchangeFilter) {
-        ClientsProperties.AppConfig config = clientsProperties.getAppConfig();
+        ClientsProperties.ClientConfig config = clientsProperties.getAppConfig();
 
         HttpClient httpClient = HttpClient.create()
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, config.getConnectTimeoutMs())

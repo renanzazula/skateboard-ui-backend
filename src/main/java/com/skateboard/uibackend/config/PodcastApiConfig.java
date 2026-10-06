@@ -42,7 +42,7 @@ public class PodcastApiConfig {
                                        ClientsProperties clientsProperties,
                                        BearerTokenExchangeFilter bearerTokenExchangeFilter,
                                        CorrelationIdExchangeFilter correlationIdExchangeFilter) {
-        ClientsProperties.Podcast config = clientsProperties.getPodcast();
+        ClientsProperties.ClientConfig config = clientsProperties.getPodcast();
 
         HttpClient httpClient = HttpClient.create()
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, config.getConnectTimeoutMs())
