@@ -1,5 +1,6 @@
 package com.skateboard.uibackend.config;
 
+import com.skateboard.uibackend.client.podcast.generated.api.GuestApplicationsApi;
 import com.skateboard.uibackend.client.podcast.generated.api.PodcastApi;
 import com.skateboard.uibackend.client.podcast.generated.invoker.ApiClient;
 import com.skateboard.uibackend.web.BearerTokenExchangeFilter;
@@ -27,15 +28,20 @@ import java.time.Duration;
  * own base URL: the generated {@code invokeAPI} always resolves request URIs
  * against {@code ApiClient.basePath}, not against anything configured on the
  * WebClient instance itself.
+ * <p>
+ * The {@link ApiClient} is its own bean (mirroring {@link AppConfigApiConfig})
+ * so {@link PodcastApi} and {@link GuestApplicationsApi} — both generated
+ * from the same vendored spec, both talking to skateboard-podcast-be — share
+ * one WebClient/connection pool instead of each building their own.
  */
 @Configuration
 public class PodcastApiConfig {
 
     @Bean
-    public PodcastApi podcastApi(WebClient.Builder webClientBuilder,
-                                  ClientsProperties clientsProperties,
-                                  BearerTokenExchangeFilter bearerTokenExchangeFilter,
-                                  CorrelationIdExchangeFilter correlationIdExchangeFilter) {
+    public ApiClient podcastApiClient(WebClient.Builder webClientBuilder,
+                                       ClientsProperties clientsProperties,
+                                       BearerTokenExchangeFilter bearerTokenExchangeFilter,
+                                       CorrelationIdExchangeFilter correlationIdExchangeFilter) {
         ClientsProperties.Podcast config = clientsProperties.getPodcast();
 
         HttpClient httpClient = HttpClient.create()
@@ -50,7 +56,16 @@ public class PodcastApiConfig {
 
         ApiClient apiClient = new ApiClient(webClient);
         apiClient.setBasePath(config.getBaseUrl());
+        return apiClient;
+    }
 
-        return new PodcastApi(apiClient);
+    @Bean
+    public PodcastApi podcastApi(ApiClient podcastApiClient) {
+        return new PodcastApi(podcastApiClient);
+    }
+
+    @Bean
+    public GuestApplicationsApi guestApplicationsApi(ApiClient podcastApiClient) {
+        return new GuestApplicationsApi(podcastApiClient);
     }
 }

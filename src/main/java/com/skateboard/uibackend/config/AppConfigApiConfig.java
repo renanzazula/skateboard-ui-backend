@@ -3,6 +3,7 @@ package com.skateboard.uibackend.config;
 import com.skateboard.uibackend.client.appconfig.generated.api.AboutUsApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.AdminApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.CampaignApi;
+import com.skateboard.uibackend.client.appconfig.generated.api.GuestApplicationSettingsApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.HomeApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.HomeFeaturedPlayerApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.LicensesApi;
@@ -98,5 +99,10 @@ public class AppConfigApiConfig {
     @Bean
     public LicensesApi licensesApi(ApiClient appConfigApiClient) {
         return new LicensesApi(appConfigApiClient);
+    }
+
+    @Bean
+    public GuestApplicationSettingsApi guestApplicationSettingsApi(ApiClient appConfigApiClient) {
+        return new GuestApplicationSettingsApi(appConfigApiClient);
     }
 }
