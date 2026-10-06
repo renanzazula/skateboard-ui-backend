@@ -30,7 +30,7 @@ public class UserApiConfig {
                         ClientsProperties clientsProperties,
                         BearerTokenExchangeFilter bearerTokenExchangeFilter,
                         CorrelationIdExchangeFilter correlationIdExchangeFilter) {
-        ClientsProperties.User config = clientsProperties.getUser();
+        ClientsProperties.ClientConfig config = clientsProperties.getUser();
 
         HttpClient httpClient = HttpClient.create()
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, config.getConnectTimeoutMs())

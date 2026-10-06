@@ -6,122 +6,37 @@ import org.springframework.boot.context.properties.NestedConfigurationProperty;
 @ConfigurationProperties(prefix = "clients")
 public class ClientsProperties {
 
-    private final Podcast podcast = new Podcast();
-    private final User user = new User();
-    private final AppConfig appConfig = new AppConfig();
-    private final Notification notification = new Notification();
+    private final ClientConfig podcast = new ClientConfig();
+    private final ClientConfig user = new ClientConfig();
+    private final ClientConfig appConfig = new ClientConfig();
+    private final ClientConfig notification = new ClientConfig();
 
     @NestedConfigurationProperty
-    public Podcast getPodcast() {
+    public ClientConfig getPodcast() {
         return podcast;
     }
 
     @NestedConfigurationProperty
-    public User getUser() {
+    public ClientConfig getUser() {
         return user;
     }
 
     @NestedConfigurationProperty
-    public AppConfig getAppConfig() {
+    public ClientConfig getAppConfig() {
         return appConfig;
     }
 
     @NestedConfigurationProperty
-    public Notification getNotification() {
+    public ClientConfig getNotification() {
         return notification;
     }
 
-    public static class Podcast {
-        private String baseUrl;
-        private int connectTimeoutMs = 3000;
-        private int readTimeoutMs = 5000;
-
-        public String getBaseUrl() {
-            return baseUrl;
-        }
-
-        public void setBaseUrl(String baseUrl) {
-            this.baseUrl = baseUrl;
-        }
-
-        public int getConnectTimeoutMs() {
-            return connectTimeoutMs;
-        }
-
-        public void setConnectTimeoutMs(int connectTimeoutMs) {
-            this.connectTimeoutMs = connectTimeoutMs;
-        }
-
-        public int getReadTimeoutMs() {
-            return readTimeoutMs;
-        }
-
-        public void setReadTimeoutMs(int readTimeoutMs) {
-            this.readTimeoutMs = readTimeoutMs;
-        }
-    }
-
-    public static class User {
-        private String baseUrl;
-        private int connectTimeoutMs = 3000;
-        private int readTimeoutMs = 5000;
-
-        public String getBaseUrl() {
-            return baseUrl;
-        }
-
-        public void setBaseUrl(String baseUrl) {
-            this.baseUrl = baseUrl;
-        }
-
-        public int getConnectTimeoutMs() {
-            return connectTimeoutMs;
-        }
-
-        public void setConnectTimeoutMs(int connectTimeoutMs) {
-            this.connectTimeoutMs = connectTimeoutMs;
-        }
-
-        public int getReadTimeoutMs() {
-            return readTimeoutMs;
-        }
-
-        public void setReadTimeoutMs(int readTimeoutMs) {
-            this.readTimeoutMs = readTimeoutMs;
-        }
-    }
-
-    public static class AppConfig {
-        private String baseUrl;
-        private int connectTimeoutMs = 3000;
-        private int readTimeoutMs = 5000;
-
-        public String getBaseUrl() {
-            return baseUrl;
-        }
-
-        public void setBaseUrl(String baseUrl) {
-            this.baseUrl = baseUrl;
-        }
-
-        public int getConnectTimeoutMs() {
-            return connectTimeoutMs;
-        }
-
-        public void setConnectTimeoutMs(int connectTimeoutMs) {
-            this.connectTimeoutMs = connectTimeoutMs;
-        }
-
-        public int getReadTimeoutMs() {
-            return readTimeoutMs;
-        }
-
-        public void setReadTimeoutMs(int readTimeoutMs) {
-            this.readTimeoutMs = readTimeoutMs;
-        }
-    }
-
-    public static class Notification {
+    /**
+     * Binding target shared by every {@code clients.*} entry (base URL +
+     * connect/read timeouts) — one instance per downstream service, not one
+     * class per service, since the shape is identical across all of them.
+     */
+    public static class ClientConfig {
         private String baseUrl;
         private int connectTimeoutMs = 3000;
         private int readTimeoutMs = 5000;

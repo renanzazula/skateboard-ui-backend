@@ -34,7 +34,7 @@ public class NotificationApiConfig {
                                             ClientsProperties clientsProperties,
                                             BearerTokenExchangeFilter bearerTokenExchangeFilter,
                                             CorrelationIdExchangeFilter correlationIdExchangeFilter) {
-        ClientsProperties.Notification config = clientsProperties.getNotification();
+        ClientsProperties.ClientConfig config = clientsProperties.getNotification();
 
         HttpClient httpClient = HttpClient.create()
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, config.getConnectTimeoutMs())
