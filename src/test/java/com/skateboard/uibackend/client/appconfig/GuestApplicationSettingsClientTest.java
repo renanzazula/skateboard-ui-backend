@@ -77,7 +77,7 @@ class GuestApplicationSettingsClientTest {
 
         assertThat(ex.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(ex.getCode()).isEqualTo("APP_CONFIG_BAD_REQUEST");
-        assertThat(ex.getMessage()).contains("{name}");
+        assertThat(ex.getMessage()).contains("at least one recipient");
     }
 
     @Test

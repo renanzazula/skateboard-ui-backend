@@ -2,7 +2,7 @@ package com.skateboard.uibackend.service;
 
 import com.skateboard.uibackend.client.appconfig.AppConfigClient;
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeFeaturedPlayerConfigResponse;
-import com.skateboard.uibackend.client.appconfig.generated.model.HomeFeaturedPlayerSelectionMode;
+import com.skateboard.uibackend.client.appconfig.generated.model.HomeSelectionMode;
 import com.skateboard.uibackend.dto.HomeFeaturedPlayerResponse;
 import com.skateboard.uibackend.exception.DownstreamServiceException;
 import org.slf4j.Logger;
@@ -40,7 +40,7 @@ public class HomeFeaturedPlayerService {
 
     public HomeFeaturedPlayerResponse getFeaturedPlayer() {
         HomeFeaturedPlayerConfigResponse config = loadConfigOrNull();
-        boolean auto = config != null && config.getSelectionMode() == HomeFeaturedPlayerSelectionMode.AUTO;
+        boolean auto = config != null && config.getSelectionMode() == HomeSelectionMode.AUTO;
         // AUTO never has a persisted contentId — app-config-be doesn't store
         // one for it, the resolver finds its own "latest" content instead.
         if (config == null || !Boolean.TRUE.equals(config.getEnabled())

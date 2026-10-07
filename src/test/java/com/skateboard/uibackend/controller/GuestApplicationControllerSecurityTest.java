@@ -208,7 +208,7 @@ class GuestApplicationControllerSecurityTest {
     void rejectsAdminSettingsUpdateWithoutTheConfigureAuthority() throws Exception {
         mockMvc.perform(put("/api/guest-application-settings/admin")
                         .contentType("application/json")
-                        .content("{\"enabled\":false,\"recipientIds\":[],\"confirmationSubject\":\"s\",\"confirmationBody\":\"b\"}")
+                        .content("{\"enabled\":false,\"recipientIds\":[]}")
                         .with(jwt().authorities(() -> "FUNC_GUEST_APPLICATION_MANAGE")))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("FORBIDDEN"));
@@ -221,7 +221,7 @@ class GuestApplicationControllerSecurityTest {
 
         mockMvc.perform(put("/api/guest-application-settings/admin")
                         .contentType("application/json")
-                        .content("{\"enabled\":true,\"recipientIds\":[],\"confirmationSubject\":\"s\",\"confirmationBody\":\"b\"}")
+                        .content("{\"enabled\":true,\"recipientIds\":[]}")
                         .with(jwt().authorities(() -> "FUNC_GUEST_APPLICATION_CONFIGURE")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.enabled").value(true));

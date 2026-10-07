@@ -93,13 +93,24 @@ tags:
       Apply to be a podcast guest (.docs/README_GUEST_APPLICATION_lang.md).
       /api/guest-applications/** (submit, own application, admin list/detail/
       status) proxies to skateboard-podcast-be; /api/guest-application-settings/**
-      (feature toggle, recipients, confirmation email template) proxies to
-      skateboard-app-config-be. GET /api/guest-application-settings is the
-      only unrestricted-but-authenticated route (feature availability only,
-      no x-required-permissions); everything else mirrors its own spec
-      entry's x-required-permissions (FUNC_GUEST_APPLICATION_CREATE,
-      FUNC_GUEST_APPLICATION_READ_OWN, FUNC_GUEST_APPLICATION_MANAGE,
-      FUNC_GUEST_APPLICATION_CONFIGURE).
+      (feature toggle, recipients) proxies to skateboard-app-config-be. GET
+      /api/guest-application-settings is the only unrestricted-but-authenticated
+      route (feature availability only, no x-required-permissions); everything
+      else mirrors its own spec entry's x-required-permissions
+      (FUNC_GUEST_APPLICATION_CREATE, FUNC_GUEST_APPLICATION_READ_OWN,
+      FUNC_GUEST_APPLICATION_MANAGE, FUNC_GUEST_APPLICATION_CONFIGURE). The
+      confirmation/admin-notification email copy that used to live on this
+      settings object is now the email-templates tag's concern.
+  - name: email-templates
+    description: >-
+      Admin-configurable email copy (.docs/README-email-customization.md),
+      one row per (EmailTemplateType, language) combination. A combination
+      that has never been configured is materialized with its type's default
+      copy on first read, so every GET always returns a full row — there is
+      no "create" operation. subject/body accept only the {{variable}}
+      placeholders the template's type declares as supported. All operations
+      require FUNC_EMAIL_TEMPLATE_MANAGE. Proxied straight through to
+      skateboard-app-config-be.
 
 paths:
 
@@ -3188,7 +3199,7 @@ paths:
     put:
       tags: [guest-applications]
       operationId: updateGuestApplicationSettings
-      summary: Update the Guest Application feature toggle, recipients, and confirmation email template (admin only)
+      summary: Update the Guest Application feature toggle and recipients (admin only)
       security:
         - bearerAuth: []
       x-required-permissions:
@@ -3207,7 +3218,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/GuestApplicationSettingsResponse'
         '400':
-          description: Invalid input (e.g. enabling with no recipients, or an unsupported placeholder)
+          description: Invalid input (e.g. enabling with no recipients)
           content:
             application/json:
               schema:
@@ -3220,6 +3231,149 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '403':
           description: Forbidden – FUNC_GUEST_APPLICATION_CONFIGURE required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/email-templates:
+    get:
+      tags: [email-templates]
+      operationId: listEmailTemplates
+      summary: List every email template (admin only)
+      description: >-
+        Returns one row per (type, language) combination for every known
+        EmailTemplateType across every supported language (en/es/pt),
+        materializing default copy for any combination never configured.
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_EMAIL_TEMPLATE_MANAGE
+      responses:
+        '200':
+          description: All email templates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EmailTemplateResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_EMAIL_TEMPLATE_MANAGE required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/email-templates/{type}/{language}:
+    get:
+      tags: [email-templates]
+      operationId: getEmailTemplate
+      summary: Get a single email template by type and language (admin only)
+      description: >-
+        Materializes a default row if this (type, language) combination has
+        never been configured.
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_EMAIL_TEMPLATE_MANAGE
+      parameters:
+        - name: type
+          in: path
+          required: true
+          description: >-
+            One of EmailTemplateType's values (see components/schemas). Kept
+            as a plain string here, not $ref'd to that schema — see
+            skateboard-app-config-be's api/openapi.yaml for why (Spring's
+            default enum path-variable conversion doesn't survive
+            openapi-generator's common-prefix stripping of this enum's
+            values).
+          schema:
+            type: string
+        - name: language
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [en, es, pt]
+      responses:
+        '200':
+          description: The email template
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailTemplateResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_EMAIL_TEMPLATE_MANAGE required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/email-templates/{id}:
+    put:
+      tags: [email-templates]
+      operationId: updateEmailTemplate
+      summary: Update an email template's subject, body, and enabled flag (admin only)
+      description: >-
+        subject/body accept only the {{variable}} placeholders the template's
+        type declares as supported — any other {{placeholder}} is rejected.
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_EMAIL_TEMPLATE_MANAGE
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEmailTemplateRequest'
+      responses:
+        '200':
+          description: Email template saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailTemplateResponse'
+        '400':
+          description: Invalid input (e.g. empty subject/body, or an unsupported placeholder)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_EMAIL_TEMPLATE_MANAGE required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Email template not found
           content:
             application/json:
               schema:
@@ -4581,7 +4735,7 @@ components:
 
     GuestApplicationSettingsResponse:
       type: object
-      required: [enabled, recipientIds, confirmationSubject, confirmationBody]
+      required: [enabled, recipientIds]
       properties:
         enabled:
           type: boolean
@@ -4590,10 +4744,6 @@ components:
           items:
             type: string
             format: uuid
-        confirmationSubject:
-          type: string
-        confirmationBody:
-          type: string
         updatedAt:
           type: string
           format: date-time
@@ -4604,7 +4754,7 @@ components:
 
     UpdateGuestApplicationSettingsRequest:
       type: object
-      required: [enabled, recipientIds, confirmationSubject, confirmationBody]
+      required: [enabled, recipientIds]
       properties:
         enabled:
           type: boolean
@@ -4613,11 +4763,50 @@ components:
           items:
             type: string
             format: uuid
-        confirmationSubject:
+
+    EmailTemplateType:
+      type: string
+      description: Stable key for an email use case — one entry per email this application can send.
+      enum:
+        - GUEST_APPLICATION_RECEIVED
+        - GUEST_APPLICATION_ADMIN_NOTIFICATION
+
+    EmailTemplateResponse:
+      type: object
+      required: [id, type, language, subject, body, enabled]
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/EmailTemplateType'
+        language:
+          type: string
+        subject:
+          type: string
+        body:
+          type: string
+        enabled:
+          type: boolean
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedBy:
+          type: string
+          nullable: true
+
+    UpdateEmailTemplateRequest:
+      type: object
+      required: [subject, body, enabled]
+      properties:
+        subject:
           type: string
           minLength: 1
           maxLength: 200
-        confirmationBody:
+        body:
           type: string
           minLength: 1
           maxLength: 4000
+        enabled:
+          type: boolean
