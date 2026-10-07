@@ -3,6 +3,7 @@ package com.skateboard.uibackend.config;
 import com.skateboard.uibackend.client.appconfig.generated.api.AboutUsApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.AdminApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.CampaignApi;
+import com.skateboard.uibackend.client.appconfig.generated.api.EmailTemplatesApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.GuestApplicationSettingsApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.HomeApi;
 import com.skateboard.uibackend.client.appconfig.generated.api.HomeFeaturedPlayerApi;
@@ -104,5 +105,10 @@ public class AppConfigApiConfig {
     @Bean
     public GuestApplicationSettingsApi guestApplicationSettingsApi(ApiClient appConfigApiClient) {
         return new GuestApplicationSettingsApi(appConfigApiClient);
+    }
+
+    @Bean
+    public EmailTemplatesApi emailTemplatesApi(ApiClient appConfigApiClient) {
+        return new EmailTemplatesApi(appConfigApiClient);
     }
 }

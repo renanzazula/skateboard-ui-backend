@@ -72,10 +72,11 @@ public class GuestApplicationSettingsClient {
     }
 
     // The only reachable error status for this feature's update is 400
-    // (enabling with no recipients, or an unsupported {placeholder}).
+    // (enabling with no recipients). Confirmation/admin-notification copy
+    // validation now lives on the email-templates endpoints, not here.
     private static String messageFor(HttpStatusCode status) {
         if (status.equals(HttpStatus.BAD_REQUEST)) {
-            return "Select at least one recipient, and only use the {name} placeholder.";
+            return "Select at least one recipient to enable submissions.";
         }
         return "App config service rejected the request";
     }

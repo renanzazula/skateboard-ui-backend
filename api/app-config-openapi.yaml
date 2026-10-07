@@ -79,17 +79,19 @@ tags:
       job. Media is stored as-is (one object per screen, no resizing/CDN yet —
       see the V1 implementation plan) and re-signed on every read, same as
       branding/About Us images.
-  - name: guest-application-settings
+  - name: email-templates
     description: >-
-      Admin configuration for the podcast "Apply to be a podcast guest"
-      feature (.docs/README_GUEST_APPLICATION_lang.md): the enable flag,
-      notification recipient ids, and the confirmation email template.
-      GET /api/guest-application-settings (feature availability only) only
-      requires authentication (any authenticated user — the Settings →
-      Community entry point uses it to decide whether to show the feature);
-      the admin GET/PUT require FUNC_GUEST_APPLICATION_CONFIGURE. Recipient
-      ids are opaque Keycloak user ids here — resolving them to names/emails
-      for display is the BFF's/notification-be's job, not this service's.
+      Admin-configurable email copy (.docs/README-email-customization.md),
+      one row per (EmailTemplateType, language) combination. Replaces the
+      flat confirmationSubject/confirmationBody pair that used to live on
+      guest-application-settings. A combination that has never been
+      configured is materialized with its type's default copy on first read,
+      so every GET always returns a full row — there is no "create" operation.
+      subject/body accept only the {{variable}} placeholders the template's
+      type declares as supported. All operations require
+      FUNC_EMAIL_TEMPLATE_MANAGE; GET /api/email-templates/{type}/{language}
+      is also called server-to-server by skateboard-notification-be to
+      render outgoing emails.
 
 paths:
 
@@ -1425,6 +1427,254 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/guest-application-settings:
+    get:
+      tags: [guest-application-settings]
+      operationId: getGuestApplicationSettingsPublic
+      summary: Get Guest Application feature availability
+      description: >-
+        Feature availability only — no recipient list or email template, so
+        any authenticated caller may read it (the Settings → Community entry
+        point uses this to decide whether to show "Be a Podcast Guest").
+        Mirrors HomeFeaturedPlayerApi's unrestricted GET.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current feature availability
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicGuestApplicationSettingsResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/guest-application-settings/admin:
+    get:
+      tags: [guest-application-settings]
+      operationId: getGuestApplicationSettingsAdmin
+      summary: Get the full Guest Application settings (admin only)
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_GUEST_APPLICATION_CONFIGURE
+      responses:
+        '200':
+          description: Current Guest Application settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuestApplicationSettingsResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_GUEST_APPLICATION_CONFIGURE required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags: [guest-application-settings]
+      operationId: updateGuestApplicationSettings
+      summary: Update the Guest Application feature toggle and recipients (admin only)
+      description: >-
+        Recipient IDs are stored as-is (Keycloak user IDs); this service does
+        not itself verify they belong to active administrators — that is
+        resolved against skateboard-user-be's admin lookup endpoint by the
+        BFF/notification-be at read/send time, not here. Enabling requires at
+        least one recipient. The confirmation/admin-notification email copy
+        is no longer configured here — see the email-templates endpoints
+        (GUEST_APPLICATION_RECEIVED / GUEST_APPLICATION_ADMIN_NOTIFICATION).
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_GUEST_APPLICATION_CONFIGURE
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateGuestApplicationSettingsRequest'
+      responses:
+        '200':
+          description: Guest Application settings saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuestApplicationSettingsResponse'
+        '400':
+          description: Invalid input (e.g. enabling with no recipients)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_GUEST_APPLICATION_CONFIGURE required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/email-templates:
+    get:
+      tags: [email-templates]
+      operationId: listEmailTemplates
+      summary: List every email template (admin only)
+      description: >-
+        Returns one row per (type, language) combination for every known
+        EmailTemplateType across every supported language (en/es/pt),
+        materializing default copy for any combination never configured.
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_EMAIL_TEMPLATE_MANAGE
+      responses:
+        '200':
+          description: All email templates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EmailTemplateResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_EMAIL_TEMPLATE_MANAGE required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/email-templates/{type}/{language}:
+    get:
+      tags: [email-templates]
+      operationId: getEmailTemplate
+      summary: Get a single email template by type and language (admin only; also called server-to-server by skateboard-notification-be)
+      description: >-
+        Materializes a default row if this (type, language) combination has
+        never been configured.
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_EMAIL_TEMPLATE_MANAGE
+      parameters:
+        - name: type
+          in: path
+          required: true
+          description: >-
+            One of EmailTemplateType's values (see components/schemas). Kept
+            as a plain string here rather than $ref'd to that schema: Spring's
+            default enum path-variable conversion is Enum.valueOf against the
+            generated DTO enum's Java constant name — and openapi-generator
+            strips the shared "GUEST_APPLICATION_" prefix from those constant
+            names (RECEIVED, ADMIN_NOTIFICATION), so a real caller sending the
+            full value would 400. The response body's `type` field stays
+            $ref'd — that round-trips correctly via Jackson's
+            @JsonValue/@JsonCreator, which path-variable binding doesn't use.
+          schema:
+            type: string
+        - name: language
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [en, es, pt]
+      responses:
+        '200':
+          description: The email template
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailTemplateResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_EMAIL_TEMPLATE_MANAGE required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/email-templates/{id}:
+    put:
+      tags: [email-templates]
+      operationId: updateEmailTemplate
+      summary: Update an email template's subject, body, and enabled flag (admin only)
+      description: >-
+        subject/body accept only the {{variable}} placeholders the template's
+        type declares as supported — any other {{placeholder}} is rejected.
+      security:
+        - bearerAuth: []
+      x-required-permissions:
+        - FUNC_EMAIL_TEMPLATE_MANAGE
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEmailTemplateRequest'
+      responses:
+        '200':
+          description: Email template saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailTemplateResponse'
+        '400':
+          description: Invalid input (e.g. empty subject/body, or an unsupported placeholder)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – FUNC_EMAIL_TEMPLATE_MANAGE required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Email template not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/campaigns/admin/{campaignId}/screens:
     post:
       tags: [campaign]
@@ -1699,95 +1949,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /api/guest-application-settings:
-    get:
-      tags: [guest-application-settings]
-      operationId: getGuestApplicationSettingsPublic
-      summary: Get Guest Application feature availability
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Current feature availability
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PublicGuestApplicationSettingsResponse'
-        '401':
-          description: Not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /api/guest-application-settings/admin:
-    get:
-      tags: [guest-application-settings]
-      operationId: getGuestApplicationSettingsAdmin
-      summary: Get the full Guest Application settings (admin only)
-      security:
-        - bearerAuth: []
-      x-required-permissions:
-        - FUNC_GUEST_APPLICATION_CONFIGURE
-      responses:
-        '200':
-          description: Current Guest Application settings
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GuestApplicationSettingsResponse'
-        '401':
-          description: Not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '403':
-          description: Forbidden – FUNC_GUEST_APPLICATION_CONFIGURE required
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-    put:
-      tags: [guest-application-settings]
-      operationId: updateGuestApplicationSettings
-      summary: Update the Guest Application feature toggle, recipients, and confirmation email template (admin only)
-      security:
-        - bearerAuth: []
-      x-required-permissions:
-        - FUNC_GUEST_APPLICATION_CONFIGURE
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateGuestApplicationSettingsRequest'
-      responses:
-        '200':
-          description: Guest Application settings saved
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GuestApplicationSettingsResponse'
-        '400':
-          description: Invalid input (e.g. enabling with no recipients, or an unsupported placeholder)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '401':
-          description: Not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '403':
-          description: Forbidden – FUNC_GUEST_APPLICATION_CONFIGURE required
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
 components:
   securitySchemes:
     bearerAuth:
@@ -1897,56 +2058,6 @@ components:
         timestamp:
           type: string
           format: date-time
-
-    PublicGuestApplicationSettingsResponse:
-      type: object
-      required: [enabled]
-      properties:
-        enabled:
-          type: boolean
-
-    GuestApplicationSettingsResponse:
-      type: object
-      required: [enabled, recipientIds, confirmationSubject, confirmationBody]
-      properties:
-        enabled:
-          type: boolean
-        recipientIds:
-          type: array
-          items:
-            type: string
-            format: uuid
-        confirmationSubject:
-          type: string
-        confirmationBody:
-          type: string
-        updatedAt:
-          type: string
-          format: date-time
-          nullable: true
-        updatedBy:
-          type: string
-          nullable: true
-
-    UpdateGuestApplicationSettingsRequest:
-      type: object
-      required: [enabled, recipientIds, confirmationSubject, confirmationBody]
-      properties:
-        enabled:
-          type: boolean
-        recipientIds:
-          type: array
-          items:
-            type: string
-            format: uuid
-        confirmationSubject:
-          type: string
-          minLength: 1
-          maxLength: 200
-        confirmationBody:
-          type: string
-          minLength: 1
-          maxLength: 4000
 
     AboutPageStatus:
       type: string
@@ -2158,16 +2269,14 @@ components:
         platform is actually available if the preferred one isn't.
       enum: [SPOTIFY, YOUTUBE]
 
-    HomeFeaturedPlayerSelectionMode:
+    HomeSelectionMode:
       type: string
       description: >-
-        MANUAL: contentId is admin-picked and is never touched by the
-        podcast source's own sync jobs. AUTO: contentId is not persisted
-        (always null) — the effective episode is resolved live, on every
-        read, as the latest published/YouTube-sourced post matching the
-        official "Skateboard Podcast #<n>" pattern. A missing/omitted value
-        (e.g. a config response from before this field existed) must be
-        treated as MANUAL.
+        How the featured content is chosen. MANUAL (default) keeps today's
+        behavior: an admin picks contentId explicitly and YouTube sync never
+        touches it. AUTO means this service stores no concrete contentId —
+        it is always null under AUTO — and the consumer resolves the latest
+        eligible episode itself at read time.
       enum: [MANUAL, AUTO]
 
     HomeFeaturedPlayerConfigResponse:
@@ -2191,9 +2300,7 @@ components:
             - $ref: '#/components/schemas/PreferredPlaybackPlatform'
           nullable: true
         selectionMode:
-          allOf:
-            - $ref: '#/components/schemas/HomeFeaturedPlayerSelectionMode'
-          nullable: true
+          $ref: '#/components/schemas/HomeSelectionMode'
         updatedAt:
           type: string
           format: date-time
@@ -2222,7 +2329,7 @@ components:
           nullable: true
         selectionMode:
           allOf:
-            - $ref: '#/components/schemas/HomeFeaturedPlayerSelectionMode'
+            - $ref: '#/components/schemas/HomeSelectionMode'
           nullable: true
 
     CampaignStatus:
@@ -2521,3 +2628,88 @@ components:
           type: string
           nullable: true
           description: Only set for CAMPAIGN_CTA_CLICKED.
+
+    PublicGuestApplicationSettingsResponse:
+      type: object
+      required: [enabled]
+      properties:
+        enabled:
+          type: boolean
+
+    GuestApplicationSettingsResponse:
+      type: object
+      required: [enabled, recipientIds]
+      properties:
+        enabled:
+          type: boolean
+        recipientIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedBy:
+          type: string
+          nullable: true
+
+    UpdateGuestApplicationSettingsRequest:
+      type: object
+      required: [enabled, recipientIds]
+      properties:
+        enabled:
+          type: boolean
+        recipientIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+
+    EmailTemplateType:
+      type: string
+      description: Stable key for an email use case (doc §8) — one entry per email this application can send.
+      enum:
+        - GUEST_APPLICATION_RECEIVED
+        - GUEST_APPLICATION_ADMIN_NOTIFICATION
+
+    EmailTemplateResponse:
+      type: object
+      required: [id, type, language, subject, body, enabled]
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/EmailTemplateType'
+        language:
+          type: string
+        subject:
+          type: string
+        body:
+          type: string
+        enabled:
+          type: boolean
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedBy:
+          type: string
+          nullable: true
+
+    UpdateEmailTemplateRequest:
+      type: object
+      required: [subject, body, enabled]
+      properties:
+        subject:
+          type: string
+          minLength: 1
+          maxLength: 200
+        body:
+          type: string
+          minLength: 1
+          maxLength: 4000
+        enabled:
+          type: boolean

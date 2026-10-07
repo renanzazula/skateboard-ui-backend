@@ -3,7 +3,7 @@ package com.skateboard.uibackend.service;
 import com.skateboard.uibackend.client.appconfig.AppConfigClient;
 import com.skateboard.uibackend.client.appconfig.generated.model.FeaturedContentSource;
 import com.skateboard.uibackend.client.appconfig.generated.model.HomeFeaturedPlayerConfigResponse;
-import com.skateboard.uibackend.client.appconfig.generated.model.HomeFeaturedPlayerSelectionMode;
+import com.skateboard.uibackend.client.appconfig.generated.model.HomeSelectionMode;
 import com.skateboard.uibackend.client.appconfig.generated.model.HomePlayerPosition;
 import com.skateboard.uibackend.client.appconfig.generated.model.HomePlayerType;
 import com.skateboard.uibackend.dto.HomeFeaturedPlayerResponse;
@@ -84,7 +84,7 @@ class HomeFeaturedPlayerServiceTest {
         when(appConfigClient.getHomeFeaturedPlayerConfig()).thenReturn(new HomeFeaturedPlayerConfigResponse()
                 .enabled(true).contentSource(FeaturedContentSource.PODCAST).contentId(null)
                 .playerType(HomePlayerType.MINI).position(HomePlayerPosition.TOP)
-                .selectionMode(HomeFeaturedPlayerSelectionMode.AUTO));
+                .selectionMode(HomeSelectionMode.AUTO));
         when(resolver.supports(FeaturedContentSource.PODCAST)).thenReturn(true);
         HomeFeaturedPlayerResponse resolved = new HomeFeaturedPlayerResponse("post-124", "PODCAST",
                 "Skateboard Podcast #124", "Skateboard Podcast", "cover.png", 100,
@@ -102,7 +102,7 @@ class HomeFeaturedPlayerServiceTest {
         when(appConfigClient.getHomeFeaturedPlayerConfig()).thenReturn(new HomeFeaturedPlayerConfigResponse()
                 .enabled(true).contentSource(FeaturedContentSource.PODCAST).contentId(null)
                 .playerType(HomePlayerType.MINI).position(HomePlayerPosition.TOP)
-                .selectionMode(HomeFeaturedPlayerSelectionMode.AUTO));
+                .selectionMode(HomeSelectionMode.AUTO));
         when(resolver.supports(FeaturedContentSource.PODCAST)).thenReturn(true);
         when(resolver.resolveAuto(null)).thenReturn(null);
 
